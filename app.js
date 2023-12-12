@@ -39,20 +39,43 @@ app.post("/", (req, res) => {
   res.send("jobs api");
 });
 
+let a = {
+  videoURL:
+    "https://static-content-for-text.s3.amazonaws.com/African+boy+crying+then+laughing+meme%F0%9F%98%82.mp4",
+  userID: "123456789",
+  coordinate: [
+    {
+      text: "Hello this is text 1",
+      textXcord: 1,
+      textYcord: 1,
+      textXT1: 1,
+      textXT2: 1,
+      textYT1: 1,
+      textYT2: 1,
+    },
+    {
+      text: "Hello this is text 2",
+      textXcord: 10,
+      textYcord: 10,
+      textXT1: 10,
+      textXT2: 10,
+      textYT1: 10,
+      textYT2: 10,
+    },
+  ],
+};
+
 app.post("/video", async (req, res) => {
   try {
     const {
-      text,
+      // text,
       userID,
       videoURL,
-      taggedUsers,
-      textXcord = 100,
-      textYcord = 500,
-      textXT1 = 3,
-      textXT2 = 2,
-      textYT1 = 3,
-      textYT2 = 2,
+      coordinate,
     } = req.body;
+
+    let Text0 = coordinate[0];
+    let Text1 = coordinate[1];
 
     // Generate a random number for the converted video file name
     const randomNum = Math.floor(Math.random() * 10000); // Adjust the range as needed
@@ -71,13 +94,23 @@ app.post("/video", async (req, res) => {
 
     // Assuming you have AWS SDK and S3 configured
     // await downloadVideoFromS3(videoURL, inputVideoPath);
-    const textX = textXcord; // Adjust the X-coordinate
-    const textY = textYcord; // Adjust the Y-coordinate
 
-    const textTx1 = textXT1;
-    const textTx2 = textXT2;
-    const textTy1 = textYT1;
-    const textTy2 = textYT2;
+    const textX_0 = Text0.textXcord; // Adjust the X-coordinate
+    const textY_0 = Text0.textYcord; // Adjust the Y-coordinate
+    const textTx1_0 = Text0.textXT1;
+    const textTx2_0 = Text0.textXT2;
+    const textTy1_0 = Text0.textYT1;
+    const textTy2_0 = Text0.textYT2;
+    const Text_0 = Text0.text;
+
+    const textX_1 = Text1.textXcord; // Adjust the X-coordinate
+    const textY_1 = Text1.textYcord; // Adjust the Y-coordinate
+    const textTx1_1 = Text1.textXT1;
+    const textTx2_1 = Text1.textXT2;
+    const textTy1_1 = Text1.textYT1;
+    const textTy2_1 = Text1.textYT2;
+
+    const Text_1 = Text1.text;
 
     // Use fluent-ffmpeg to add text to the video with dynamic movement
     ffmpeg()
@@ -86,12 +119,12 @@ app.post("/video", async (req, res) => {
         {
           filter: "drawtext",
           options: {
-            text: "llklklklklklklklkl99999999999999999999999hgvyfytduhijhbvgfdtre567tyuhjbgvfcdtreyguh",
+            text: Text_0,
             fontfile: "arial.ttf",
             fontsize: 24,
             fontcolor: "red",
-            x: `if(lt(mod(t,${textTx1}),${textTx2}), ${textX}+10*t-30, NAN)`,
-            y: `if(lt(mod(t,${textTy1}),${textTy2}), ${textY}+10, NAN)`,
+            x: `if(lt(mod(t,${textTx1_0}),${textTx2_0}), ${textX_0}+10*t-30, NAN)`,
+            y: `if(lt(mod(t,${textTy1_0}),${textTy2_0}), ${textY_0}+10, NAN)`,
           },
         },
       ])
@@ -131,12 +164,12 @@ app.post("/video", async (req, res) => {
             {
               filter: "drawtext",
               options: {
-                text: "llklklklklklklklkl99999999999999999999999hgvyfytduhijhbvgfdtre567tyuhjbgvfcdtreyguh",
+                text: Text_1,
                 fontfile: "arial.ttf",
                 fontsize: 45,
                 fontcolor: "green",
-                x: `if(lt(mod(t,${textTx1}),${textTx2}), ${textX}+10*t-30, NAN)`,
-                y: `if(lt(mod(t,${textTy1}),${textTy2}), ${textY}+10, NAN)`,
+                x: `if(lt(mod(t,${textTx1_1}),${textTx2_1}), ${textX_1}+10*t-30, NAN)`,
+                y: `if(lt(mod(t,${textTy1_1}),${textTy2_1}), ${textY_1}+10, NAN)`,
               },
             },
           ])
@@ -229,11 +262,11 @@ app.use("/api/v1/jobs", jobsRouter);
 app.use(notFoundMiddleware);
 app.use(errorHandlerMiddleware);
 
-const port = PORT || 3000;
+const port = PORT || 5001;
 
 const start = async () => {
   try {
-    await connectDB(MONGO_URI);
+    // await connectDB(MONGO_URI);
     app.listen(port, () =>
       console.log(`Server is listening on port ${port}...`)
     );
