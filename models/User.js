@@ -23,12 +23,13 @@ const UserScheme = new mongoose.Schema({
     required: [true, "Please Provide password"],
     minLength: 6,
   },
+  token: {
+    type: String,
+    minLength: 6,
+    required: false,
+  },
 });
 
-UserScheme.pre("save", async function (next) {
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-  next()
-});
+
 
 module.exports = mongoose.model("User", UserScheme);
