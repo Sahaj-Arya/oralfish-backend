@@ -18,7 +18,6 @@ const notFoundMiddleware = require("./middleware/not-found");
 const errorHandlerMiddleware = require("./middleware/error-handler");
 const connectDB = require("./db/connect");
 const verifyToken = require("./middleware/verifyToken");
-const { upload } = require("./controllers/upload");
 
 app.use(express.json());
 
@@ -27,14 +26,9 @@ app.use(cors());
 app.get("/", (req, res) => {
   res.send("API working on V1");
 });
-app.post("/upload", upload.single("profile"), (req, res) => {
-  console.log(req.file);
-  res.send("API working on V1");
-});
 
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/jobs", jobsRouter);
-app.use("/api/v1/notification", notificationRouter);
 app.use("/api/v1/notification", notificationRouter);
 app.use("/api/v1/upload", uploadRouter);
 
