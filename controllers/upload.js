@@ -15,7 +15,7 @@ const single = async (req, res) => {
       res.status(200).send({
         message: "Uploaded",
         url:
-          "https://oralfish-uploads.s3.ap-south-1.amazonaws.com" + params.Key,
+          "https://oralfish-uploads.s3.ap-south-1.amazonaws.com/" + params.Key,
       });
     })
     .catch((e) => console.log(e));

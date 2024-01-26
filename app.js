@@ -24,7 +24,7 @@ app.use(express.json());
 app.use(cors());
 
 app.get("/", (req, res) => {
-  res.send("API working on V1");
+  res.send("<h1>Hello Express!</h1>");
 });
 
 app.use("/api/v1/auth", authRouter);
