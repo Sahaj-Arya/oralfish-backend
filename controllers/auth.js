@@ -15,7 +15,7 @@ const register = async (req, res) => {
   }
 
   const salt = await bcrypt.genSalt(10);
-  let = encryptedPassword = await bcrypt.hash(password, salt);
+  const encryptedPassword = await bcrypt.hash(password, salt);
 
   const user = await User.create({
     ...req.body,
@@ -69,4 +69,42 @@ const login = async (req, res) => {
   res.status(StatusCodes.CREATED).json({ ...user._doc });
 };
 
-module.exports = { register, login };
+//  To Login
+const loginViaOtp = async (req, res) => {
+  const { phone } = req.body;
+
+  console.log(phone, "body");
+
+  const user = await User.findOne({ phone: phone });
+
+  console.log(user, "user");
+
+  if (!user) {
+    return res
+      .status(StatusCodes.NOT_FOUND)
+      .json({ message: `No User by phone ${phone}` });
+  }
+
+  return;
+
+  const isValidPassword = await bcrypt.compare(password, user.password);
+
+  if (!isValidPassword) {
+    return res.status(401).json({ message: "Invalid credentials" });
+  }
+
+  const token = jwt.sign(
+    { email: email, id: user._id },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: "30d",
+    }
+  );
+
+  user.token = token;
+  await user.save();
+
+  res.status(StatusCodes.CREATED).json({ ...user._doc });
+};
+
+module.exports = { register, login, loginViaOtp };
