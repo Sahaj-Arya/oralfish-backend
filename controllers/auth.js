@@ -4,6 +4,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 const User = require("../models/User");
+const { default: axios } = require("axios");
 
 // Register / Signup
 const register = async (req, res) => {
@@ -71,40 +72,69 @@ const login = async (req, res) => {
 
 //  To Login
 const loginViaOtp = async (req, res) => {
-  const { phone } = req.body;
+  const { phone, fcm_token } = req.body;
 
-  console.log(phone, "body");
+  const existingUser = await User.findOne({ phone });
 
-  const user = await User.findOne({ phone: phone });
+  const otp = Math.floor(100000 + Math.random() * 900000);
 
-  console.log(user, "user");
+  // let data = `is ${otp}`;
 
+  // let msg = `Dear user, your mobile verification code ${data}. via-oralfish`;
+
+  // let URL = `http://164.52.195.161/API/SendMsg.aspx?uname=20240015&pass=59s993An&send=OFLOGN&dest=${phone}&msg=${msg}`;
+  // let providerOtp = axios.get(URL);
+  // providerOtp.then((e) => console.log(e)).catch((err) => console.log(err));
+
+  if (existingUser) {
+    await User.updateOne(
+      {
+        phone,
+      },
+      { otp, fcm_token }
+    );
+  } else {
+    await User.create({
+      phone,
+      otp,
+      fcm_token,
+    });
+  }
+  return res.status(StatusCodes.CREATED).json({
+    message: "OTP sent Successfully",
+    data: { validity: "Valid for 5 minutes", otp },
+  });
+};
+
+const verifyOtp = async (req, res) => {
+  const { phone, otp, fcm_token } = req.body;
+
+  console.log(req.body);
+  const user = await User.findOne({ phone });
   if (!user) {
     return res
       .status(StatusCodes.NOT_FOUND)
-      .json({ message: `No User by phone ${phone}` });
+      .json({ message: `No User by email ${email}` });
   }
 
-  return;
-
-  const isValidPassword = await bcrypt.compare(password, user.password);
-
-  if (!isValidPassword) {
-    return res.status(401).json({ message: "Invalid credentials" });
+  if (user.otp !== otp) {
+    return res.status(401).json({ message: "Invalid OTP" });
   }
 
   const token = jwt.sign(
-    { email: email, id: user._id },
+    { phone: phone, id: user._id },
     process.env.JWT_SECRET,
     {
       expiresIn: "30d",
     }
   );
-
+  user.otp = "";
+  user.fcm_token = fcm_token;
   user.token = token;
+  user.isPhoneVerified = true;
   await user.save();
 
   res.status(StatusCodes.CREATED).json({ ...user._doc });
 };
 
-module.exports = { register, login, loginViaOtp };
+module.exports = { register, login, loginViaOtp, verifyOtp };
