@@ -7,11 +7,12 @@ const jobsRouter = require("./routes/jobs");
 const authRouter = require("./routes/auth");
 const notificationRouter = require("./routes/notification");
 const uploadRouter = require("./routes/upload");
+const profileRouter = require("./routes/profile");
+const imageRouter = require("./routes/image");
 
 const { PORT, MONGO_URI } = process.env;
 
 const app = express();
-const path = require("path");
 
 // error handler
 const notFoundMiddleware = require("./middleware/not-found");
@@ -20,7 +21,7 @@ const connectDB = require("./db/connect");
 const verifyToken = require("./middleware/verifyToken");
 
 app.use(express.json());
-
+app.use("/image", express.static("../rojgarData/images"));
 app.use(cors());
 
 app.get("/", (req, res) => {
@@ -28,9 +29,11 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/profile", profileRouter);
 app.use("/api/v1/jobs", jobsRouter);
 app.use("/api/v1/notification", notificationRouter);
 app.use("/api/v1/upload", uploadRouter);
+app.use("/image", imageRouter);
 
 app.use(notFoundMiddleware);
 app.use(verifyToken);

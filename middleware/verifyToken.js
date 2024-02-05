@@ -1,15 +1,18 @@
+const jwt = require("jsonwebtoken");
+
 // Middleware to verify JWT token
 const verifyToken = (req, res, next) => {
-  const token = req.header("Authorization");
+  const token = req.header("authorization");
+
   if (!token) {
     return res
       .status(401)
-      .json({ message: "Access denied, no token provided" });
+      .json({ message: "Access denied!!!. No token provided" });
   }
 
-  jwt.verify(token, secretKey, (err, user) => {
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) {
-      return res.status(401).json({ message: "Invalid token" });
+      return res.status(401).json({ message: "Invalid token!!!!" });
     }
 
     req.user = user;

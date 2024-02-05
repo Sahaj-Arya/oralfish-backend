@@ -22,28 +22,68 @@ admin.initializeApp({
 
 const singleNotification = async (req, res) => {
   console.log("notificationRouter");
-  const { token, title, body } = req.body;
+  const { token, title, body, image } = req.body;
 
   if (!token || !title || !body) {
     return res.status(400).json({ error: "Invalid request parameters" });
   }
 
-  const message = {
-    token,
+  // let message = {
+  //   token,
+  //   notification: {
+  //     title,
+  //     body,
+  //   },
+  // };
+
+  let message = {
     notification: {
       title,
       body,
     },
+    android: {
+      notification: {
+        imageUrl: image,
+      },
+    },
+    token,
+    apns: {
+      payload: {
+        aps: {
+          "mutable-content": 1,
+        },
+      },
+      fcm_options: {
+        image: image,
+      },
+    },
+    // webpush: {
+    //   headers: {
+    //     image: image,
+    //   },
+    // },
   };
+
+  // if (image) {
+  //   message.android = {
+  //     notification: {
+  //       imageUrl: image,
+  //     },
+  //   };
+  // }
 
   admin
     .messaging()
     .send(message)
     .then((response) => {
-      res.status(200).json({ success: true, response });
+      res.status(200).json({ success: true, response, data: message });
     })
     .catch((error) => {
-      res.status(500).json({ error: "Internal server error", message: error });
+      res.status(500).json({
+        error: "Internal server error",
+        message: error,
+        data: message,
+      });
     });
 };
 

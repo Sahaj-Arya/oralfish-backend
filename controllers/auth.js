@@ -109,7 +109,6 @@ const loginViaOtp = async (req, res) => {
 const verifyOtp = async (req, res) => {
   const { phone, otp, fcm_token } = req.body;
 
-  console.log(req.body);
   const user = await User.findOne({ phone });
   if (!user) {
     return res
