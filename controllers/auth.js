@@ -73,14 +73,14 @@ const login = async (req, res) => {
 //  To Login
 const loginViaOtp = async (req, res) => {
   const { phone, fcm_token } = req.body;
-
+  console.log("hhhhhhhhh");
   const existingUser = await User.findOne({ phone });
 
   const otp = Math.floor(100000 + Math.random() * 900000);
 
-  // let data = `is ${otp}`;
+  let data = `is ${otp}`;
 
-  // let msg = `Dear user, your mobile verification code ${data}. via-oralfish`;
+  let msg = `Dear user, your mobile verification code ${data}. via-oralfish`;
 
   // let URL = `http://164.52.195.161/API/SendMsg.aspx?uname=20240015&pass=59s993An&send=OFLOGN&dest=${phone}&msg=${msg}`;
   // let providerOtp = axios.get(URL);
@@ -127,6 +127,7 @@ const verifyOtp = async (req, res) => {
       expiresIn: "30d",
     }
   );
+
   user.otp = "";
   user.fcm_token = fcm_token;
   user.token = token;

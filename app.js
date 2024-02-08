@@ -21,12 +21,14 @@ const connectDB = require("./db/connect");
 const verifyToken = require("./middleware/verifyToken");
 
 app.use(express.json());
-app.use("/image", express.static("../rojgarData/images"));
 app.use(cors());
 
 app.get("/", (req, res) => {
   res.send("<h1>Hello Express!</h1>");
 });
+
+
+app.use("/image", express.static("../rojgarData/images"));
 
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/profile", profileRouter);
