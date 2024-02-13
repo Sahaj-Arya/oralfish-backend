@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
 
 const UserSchema = new mongoose.Schema({
   name: { type: String, default: "" },
@@ -20,4 +19,4 @@ const UserSchema = new mongoose.Schema({
 
 UserSchema.index({ phone: 1 }, { unique: true });
 
-module.exports = mongoose.model("User", UserSchema);
+module.exports = mongoose.model("Users", UserSchema, "users");

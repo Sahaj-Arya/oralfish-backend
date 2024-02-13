@@ -1,20 +1,21 @@
 require("dotenv").config();
 require("express-async-errors");
+
 const cors = require("cors"); // Import the cors middleware
 const express = require("express");
 
-const jobsRouter = require("./routes/jobs");
 const authRouter = require("./routes/auth");
 const notificationRouter = require("./routes/notification");
 const uploadRouter = require("./routes/upload");
 const profileRouter = require("./routes/profile");
 const imageRouter = require("./routes/image");
+const offerRouter = require("./routes/offers");
+const categoryRouter = require("./routes/category");
 
 const { PORT, MONGO_URI } = process.env;
 
 const app = express();
 
-// error handler
 const notFoundMiddleware = require("./middleware/not-found");
 const errorHandlerMiddleware = require("./middleware/error-handler");
 const connectDB = require("./db/connect");
@@ -27,14 +28,14 @@ app.get("/", (req, res) => {
   res.send("<h1>Hello Express!</h1>");
 });
 
-
 app.use("/image", express.static("../rojgarData/images"));
 
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/profile", profileRouter);
-app.use("/api/v1/jobs", jobsRouter);
 app.use("/api/v1/notification", notificationRouter);
 app.use("/api/v1/upload", uploadRouter);
+app.use("/api/v1/offers", offerRouter);
+app.use("/api/v1/category", categoryRouter);
 app.use("/image", imageRouter);
 
 app.use(notFoundMiddleware);
