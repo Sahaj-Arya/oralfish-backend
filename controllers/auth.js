@@ -114,7 +114,12 @@ const verifyOtp = async (req, res) => {
   }
 
   if (user.otp !== otp) {
-    return res.status(401).json({ message: "Invalid OTP" });
+    return res.status(401).json({
+      message: "Invalid OTP",
+      success: false,
+      error: errorMessage,
+      code: 401,
+    });
   }
 
   const token = jwt.sign(
