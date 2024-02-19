@@ -67,17 +67,14 @@ const updateProfile = async (req, res) => {
         }
       }
     });
-    if (step_done == 4) {
-      const user = await User.findOne({ phone: req.body.phone });
-
-      let bank_details = [...user?.bank_details, obj];
-      data = { bank_details };
-      data["isProfileComplete"] = req?.body?.isProfileComplete;
-    } else {
-      data = { ...req.body, ...data };
-    }
+  }
+  if (step_done == 4) {
+    const user = await User.findOne({ phone: req.body.phone });
+    let bank_details = [...user?.bank_details, obj];
+    data = { bank_details };
+    data["isProfileComplete"] = req?.body?.isProfileComplete;
   } else {
-    return res.status(404).send("Image cannot be empty");
+    data = { ...req.body, ...data };
   }
 
   console.log(data);
@@ -92,7 +89,7 @@ const updateProfile = async (req, res) => {
       return res.status(404).send("User not found");
     }
 
-    res.status(200).send({ message: "User updated successfully", updatedUser });
+    res.status(200).send({ message: "User updated successfully" });
   } catch (error) {
     res.status(500).send(error.message);
   }

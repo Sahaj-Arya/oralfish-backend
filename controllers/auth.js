@@ -2,7 +2,7 @@ const { BadRequestError } = require("../errors");
 const { StatusCodes } = require("http-status-codes");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-
+const WebUsers = require("../models/WebUsers");
 const User = require("../models/User");
 const { default: axios } = require("axios");
 
@@ -10,7 +10,7 @@ const { default: axios } = require("axios");
 const register = async (req, res) => {
   const { name, email, password } = req.body;
 
-  const existingUser = await User.findOne({ email });
+  const existingUser = await WebUsers.findOne({ email });
   if (existingUser) {
     return res.status(401).json({ message: "User exists" });
   }
@@ -110,7 +110,7 @@ const verifyOtp = async (req, res) => {
   if (!user) {
     return res
       .status(StatusCodes.NOT_FOUND)
-      .json({ message: `No User by email ${email}` });
+      .json({ message: `No User by phone ${phone}` });
   }
 
   if (user.otp !== otp) {

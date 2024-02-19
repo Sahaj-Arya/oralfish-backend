@@ -12,6 +12,7 @@ const imageRouter = require("./routes/image");
 const offerRouter = require("./routes/offers");
 const categoryRouter = require("./routes/category");
 const bannerRouter = require("./routes/banner");
+const bankRouter = require("./routes/bank");
 
 const { PORT, MONGO_URI } = process.env;
 
@@ -38,6 +39,7 @@ app.use("/api/v1/upload", uploadRouter);
 app.use("/api/v1/offers", offerRouter);
 app.use("/api/v1/category", categoryRouter);
 app.use("/api/v1/banner", bannerRouter);
+app.use("/api/v1/bank", bankRouter);
 app.use("/image", imageRouter);
 
 app.use(notFoundMiddleware);
