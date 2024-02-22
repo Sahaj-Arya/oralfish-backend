@@ -53,7 +53,7 @@ const updateProfile = async (req, res) => {
   if (req?.files?.length > 0) {
     req?.files?.map((val, i) => {
       console.log(val, "j");
-      let image = "http://192.168.1.8:5001/image/" + val.filename;
+      let image = "http://localhost:5001/image/" + val.filename;
 
       if (step_done == 2) {
         data["profile_image"] = image;
@@ -95,4 +95,14 @@ const updateProfile = async (req, res) => {
   }
 };
 
-module.exports = { getProfile, updateProfile };
+const getProfileWeb = async (req, res) => {
+  const id = req.body.id; // Replace "your_id_here" with the actual ID
+
+  const offer = await User.findById(id);
+  if (!offer) {
+    return res.send({ success: false, message: "failed" });
+  }
+  return res.send({ data: offer[0], message: "Data Fetched", success: true });
+};
+
+module.exports = { getProfile, updateProfile, getProfileWeb };

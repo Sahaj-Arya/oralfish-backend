@@ -82,18 +82,25 @@ const loginViaOtp = async (req, res) => {
   // let providerOtp = axios.get(URL);
   // providerOtp.then((e) => console.log(e)).catch((err) => console.log(err));
 
+  const updateObj = { otp };
+
+  if (fcm_token) {
+    if (!existingUser?.fcm_token?.includes(fcm_token)) {
+      updateObj["fcm_token"] = [...existingUser?.fcm_token, fcm_token];
+    }
+  }
+
   if (existingUser) {
     await User.updateOne(
       {
         phone,
       },
-      { otp, fcm_token }
+      updateObj
     );
   } else {
     await User.create({
       phone,
-      otp,
-      fcm_token,
+      ...updateObj,
     });
   }
 
@@ -131,13 +138,64 @@ const verifyOtp = async (req, res) => {
   );
 
   user.otp = "";
-  user.fcm_token = fcm_token;
-  user.token = token;
+  user.fcm_token = [...user?.fcm_token, fcm_token];
+  user.token = [...user.token, token];
   user.isPhoneVerified = true;
 
   await user.save();
 
-  res.status(StatusCodes.CREATED).json({ ...user._doc });
+  res.status(StatusCodes.CREATED).json({ ...user._doc, token });
 };
 
-module.exports = { register, login, loginViaOtp, verifyOtp };
+const logout = async (req, res) => {
+  const { phone } = req.body;
+  const token = req.header("authorization");
+  const user = req.user;
+
+  if (user.token.length < 1) {
+    console.log("data");
+    return res.status(StatusCodes.CREATED).json({
+      message: "Log out successful",
+      success: true,
+    });
+  }
+
+  // Assuming 'token' is an array of tokens in the user document and you want to remove the current token
+
+  const updatedToken = user.token.filter((e) => e !== token);
+
+  try {
+    // Update the user document by removing the token
+    const updatedUser = await User.findOneAndUpdate(
+      { phone },
+      { token: updatedToken },
+      { new: true } // Return the updated document
+    );
+
+    // If the update is successful, send a success response
+    if (updatedUser) {
+      res.status(200).json({
+        // Use 200 for a successful operation, assuming StatusCodes.CREATED is 201 which is not typically used for logout success
+        message: "Log out successful",
+        success: true,
+      });
+    } else {
+      // If no user was found or updated, send a failure response
+      res.status(404).json({
+        // Use 404 if no user is found with the given criteria
+        message: "User not found",
+        success: false,
+      });
+    }
+  } catch (err) {
+    // Catch any errors during the update process
+    return res.status(500).json({
+      // Use 500 for server errors
+      message: "Failed to log out",
+      success: false,
+      error: err.message, // It's often better to send err.message for clarity on the error
+    });
+  }
+};
+
+module.exports = { register, login, loginViaOtp, verifyOtp, logout };

@@ -13,7 +13,7 @@ const createBank = async (req, res) => {
   let data = { ...rest };
 
   if (req?.file) {
-    let image = "http://192.168.1.8:5001/image/" + req.file.filename;
+    let image = "http://localhost:5001/image/" + req.file.filename;
     data["image"] = image;
   }
 
@@ -43,7 +43,7 @@ const updateBank = async (req, res) => {
   let data = { ...rest };
 
   if (req?.file) {
-    let image = "http://192.168.1.8:5001/image/" + req.file.filename;
+    let image = "http://localhost:5001/image/" + req.file.filename;
     data["image"] = image;
   }
 

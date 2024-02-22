@@ -1,0 +1,288 @@
+[{
+  "_id": {
+    "$oid": "65c0685d058cfc0846d4683d"
+  },
+  "id": 15,
+  "bank_name": "Equitas Bank",
+  "deleted_at": null,
+  "created_at": "2022-06-29T12:14:21.000000Z",
+  "updated_at": {
+    "$date": "2024-02-19T08:52:48.997Z"
+  },
+  "isActive": true,
+  "image": "http://192.168.1.8:5001/image/1708332768985_equitas_bank.png"
+},
+{
+  "_id": {
+    "$oid": "65c0685d058cfc0846d4683b"
+  },
+  "id": 13,
+  "bank_name": "DENA BANK",
+  "deleted_at": null,
+  "created_at": "2022-05-27T11:43:56.000000Z",
+  "updated_at": {
+    "$date": "2024-02-19T09:01:10.967Z"
+  },
+  "isActive": true,
+  "image": "http://192.168.1.8:5001/image/1708333270965_dena_bank.png"
+},
+{
+  "_id": {
+    "$oid": "65c0685d058cfc0846d46841"
+  },
+  "id": 19,
+  "bank_name": "IDFC Bank",
+  "deleted_at": null,
+  "created_at": "2022-06-29T12:16:10.000000Z",
+  "updated_at": {
+    "$date": "2024-02-19T08:55:27.157Z"
+  },
+  "isActive": true,
+  "image": "http://192.168.1.8:5001/image/1708332927153_KNAB_Finance (NBFC).jpeg"
+},
+{
+  "_id": {
+    "$oid": "65c0685d058cfc0846d46842"
+  },
+  "id": 20,
+  "bank_name": "Bank of Baroda",
+  "deleted_at": null,
+  "created_at": "2022-06-29T12:16:28.000000Z",
+  "updated_at": {
+    "$date": "2024-02-19T09:01:37.638Z"
+  },
+  "isActive": true,
+  "image": "http://192.168.1.8:5001/image/1708333297635_Bank_of Baroda.png"
+},
+{
+  "_id": {
+    "$oid": "65c0685d058cfc0846d46848"
+  },
+  "id": 26,
+  "bank_name": "KNAB Finance (NBFC)",
+  "deleted_at": null,
+  "created_at": "2023-07-12T09:38:28.000000Z",
+  "updated_at": {
+    "$date": "2024-02-19T09:02:10.718Z"
+  },
+  "isActive": true,
+  "image": "http://192.168.1.8:5001/image/1708333330716_KNAB_Finance (NBFC).jpeg"
+},
+{
+  "_id": {
+    "$oid": "65c0685d058cfc0846d4684c"
+  },
+  "id": 30,
+  "bank_name": "Demat",
+  "deleted_at": null,
+  "created_at": "2023-07-12T11:00:05.000000Z",
+  "updated_at": "2023-07-12T11:00:05.000000Z",
+  "isActive": true
+},
+{
+  "_id": {
+    "$oid": "65c0685d058cfc0846d4684b"
+  },
+  "id": 29,
+  "bank_name": "Bajaj Finance (NBFC)",
+  "deleted_at": null,
+  "created_at": "2023-07-12T10:44:19.000000Z",
+  "updated_at": {
+    "$date": "2024-02-19T08:55:47.890Z"
+  },
+  "isActive": true,
+  "image": "http://192.168.1.8:5001/image/1708332947885_Bajaj_Finance (NBFC).png"
+},
+{
+  "_id": {
+    "$oid": "65c0685d058cfc0846d4683a"
+  },
+  "id": 12,
+  "bank_name": "AXIS BANK",
+  "deleted_at": null,
+  "created_at": "2022-05-27T11:43:49.000000Z",
+  "updated_at": {
+    "$date": "2024-02-19T09:11:53.462Z"
+  },
+  "isActive": true,
+  "image": "http://192.168.1.8:5001/image/1708333913459_axis.png"
+},
+{
+  "_id": {
+    "$oid": "65c0685d058cfc0846d46843"
+  },
+  "id": 21,
+  "bank_name": "CITI BANK",
+  "deleted_at": null,
+  "created_at": "2022-08-16T18:16:21.000000Z",
+  "updated_at": {
+    "$date": "2024-02-19T08:56:19.648Z"
+  },
+  "isActive": true,
+  "image": "http://192.168.1.8:5001/image/1708332979645_citi.png"
+},
+{
+  "_id": {
+    "$oid": "65c0685d058cfc0846d4683e"
+  },
+  "id": 16,
+  "bank_name": "AU Bank",
+  "deleted_at": null,
+  "created_at": "2022-06-29T12:14:35.000000Z",
+  "updated_at": {
+    "$date": "2024-02-19T08:56:37.318Z"
+  },
+  "isActive": true,
+  "image": "http://192.168.1.8:5001/image/1708332997316_Au_bank.png"
+},
+{
+  "_id": {
+    "$oid": "65c0685d058cfc0846d46849"
+  },
+  "id": 27,
+  "bank_name": "L&T Finance (NBFC)",
+  "deleted_at": null,
+  "created_at": "2023-07-12T09:51:09.000000Z",
+  "updated_at": {
+    "$date": "2024-02-19T08:56:56.642Z"
+  },
+  "isActive": true,
+  "image": "http://192.168.1.8:5001/image/1708333016641_L&T_Finance (NBFC).png"
+},
+{
+  "_id": {
+    "$oid": "65c0685d058cfc0846d46845"
+  },
+  "id": 23,
+  "bank_name": "HDFC Bank",
+  "deleted_at": null,
+  "created_at": "2022-08-20T13:39:24.000000Z",
+  "updated_at": {
+    "$date": "2024-02-19T08:57:11.294Z"
+  },
+  "isActive": true,
+  "image": "http://192.168.1.8:5001/image/1708333031293_HDFC_Bank.png"
+},
+{
+  "_id": {
+    "$oid": "65c0685d058cfc0846d4684d"
+  },
+  "id": 31,
+  "bank_name": "Mutual Fund",
+  "deleted_at": null,
+  "created_at": "2023-07-26T12:29:22.000000Z",
+  "updated_at": "2023-07-26T12:29:22.000000Z",
+  "isActive": true
+},
+{
+  "_id": {
+    "$oid": "65c0685d058cfc0846d46846"
+  },
+  "id": 24,
+  "bank_name": "Navi Finserv (NBFC)",
+  "deleted_at": null,
+  "created_at": "2023-07-12T07:49:24.000000Z",
+  "updated_at": {
+    "$date": "2024-02-19T08:57:36.253Z"
+  },
+  "isActive": true,
+  "image": "http://192.168.1.8:5001/image/1708333056251_Navi_Finserv (NBFC).png"
+},
+{
+  "_id": {
+    "$oid": "65c0685d058cfc0846d4683f"
+  },
+  "id": 17,
+  "bank_name": "IndusInd Bank",
+  "deleted_at": null,
+  "created_at": "2022-06-29T12:15:08.000000Z",
+  "updated_at": {
+    "$date": "2024-02-19T08:57:52.577Z"
+  },
+  "isActive": true,
+  "image": "http://192.168.1.8:5001/image/1708333072575_indusind_bank.png"
+},
+{
+  "_id": {
+    "$oid": "65c0685d058cfc0846d46840"
+  },
+  "id": 18,
+  "bank_name": "Kotak Bank",
+  "deleted_at": null,
+  "created_at": "2022-06-29T12:15:27.000000Z",
+  "updated_at": {
+    "$date": "2024-02-19T08:58:09.411Z"
+  },
+  "isActive": true,
+  "image": "http://192.168.1.8:5001/image/1708333089409_kotak.png"
+},
+{
+  "_id": {
+    "$oid": "65c0685d058cfc0846d46839"
+  },
+  "id": 11,
+  "bank_name": "SBI BANK",
+  "deleted_at": null,
+  "created_at": "2022-05-27T11:43:42.000000Z",
+  "updated_at": {
+    "$date": "2024-02-19T08:58:25.708Z"
+  },
+  "isActive": true,
+  "image": "http://192.168.1.8:5001/image/1708333105706_Sbi.png"
+},
+{
+  "_id": {
+    "$oid": "65c0685d058cfc0846d4684a"
+  },
+  "id": 28,
+  "bank_name": "Yes Bank",
+  "deleted_at": null,
+  "created_at": "2023-07-12T10:12:19.000000Z",
+  "updated_at": {
+    "$date": "2024-02-19T08:58:44.887Z"
+  },
+  "isActive": true,
+  "image": "http://192.168.1.8:5001/image/1708333124885_Yes_Bank.png"
+},
+{
+  "_id": {
+    "$oid": "65c0685d058cfc0846d4683c"
+  },
+  "id": 14,
+  "bank_name": "ICICI BANK",
+  "deleted_at": null,
+  "created_at": "2022-06-20T16:52:40.000000Z",
+  "updated_at": {
+    "$date": "2024-02-19T09:03:28.617Z"
+  },
+  "isActive": true,
+  "image": "http://192.168.1.8:5001/image/1708333408611_icici_bank.png"
+},
+{
+  "_id": {
+    "$oid": "65c0685d058cfc0846d46844"
+  },
+  "id": 22,
+  "bank_name": "Standard Chartered Bank",
+  "deleted_at": null,
+  "created_at": "2022-08-20T12:33:31.000000Z",
+  "updated_at": {
+    "$date": "2024-02-19T08:59:47.194Z"
+  },
+  "isActive": true,
+  "image": "http://192.168.1.8:5001/image/1708333187191_Standard_Chartered Bank.png"
+},
+{
+  "_id": {
+    "$oid": "65c0685d058cfc0846d46847"
+  },
+  "id": 25,
+  "bank_name": "Aditya Birla (NBFC)",
+  "deleted_at": null,
+  "created_at": "2023-07-12T08:52:19.000000Z",
+  "updated_at": {
+    "$date": "2024-02-19T09:00:23.929Z"
+  },
+  "isActive": true,
+  "image": "http://192.168.1.8:5001/image/1708333223927_Aditya_Birla (NBFC).png"
+}]

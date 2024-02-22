@@ -40,6 +40,7 @@ app.use("/api/v1/offers", offerRouter);
 app.use("/api/v1/category", categoryRouter);
 app.use("/api/v1/banner", bannerRouter);
 app.use("/api/v1/bank", bankRouter);
+app.use("/api/v1/lead", bankRouter);
 app.use("/image", imageRouter);
 
 app.use(notFoundMiddleware);
