@@ -2,24 +2,27 @@ const { BadRequestError } = require("../errors");
 const { StatusCodes } = require("http-status-codes");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const WebUsers = require("../models/WebUsers");
 const User = require("../models/User");
-const { default: axios } = require("axios");
+
+const WebUsers = require("../models/WebUsers");
 
 // Register / Signup
 const register = async (req, res) => {
-  const { name, email, password } = req.body;
+  const { firstName, lastName, email, password } = req.body;
 
   const existingUser = await WebUsers.findOne({ email });
+  console.log(existingUser);
   if (existingUser) {
-    return res.status(401).json({ message: "User exists" });
+    return res.status(401).json({ message: "User exists", success: true });
   }
 
   const salt = await bcrypt.genSalt(10);
   const encryptedPassword = await bcrypt.hash(password, salt);
 
-  const user = await User.create({
-    ...req.body,
+  const user = await WebUsers.create({
+    firstName,
+    lastName,
+    email,
     password: encryptedPassword,
   });
 
@@ -34,16 +37,18 @@ const register = async (req, res) => {
   user.token = token;
   await user.save();
 
-  res
-    .status(StatusCodes.CREATED)
-    .json({ user: { id: user._id, email, name }, token });
+  res.status(StatusCodes.CREATED).json({
+    user: { id: user._id, email, firstName, lastName },
+    message: "User registered successfully",
+    success: true,
+  });
 };
 
 // To Login
 const login = async (req, res) => {
-  const { name, email, password } = req.body;
+  const { email, password } = req.body;
 
-  const user = await User.findOne({ email });
+  const user = await WebUsers.findOne({ email });
   if (!user) {
     return res
       .status(StatusCodes.NOT_FOUND)

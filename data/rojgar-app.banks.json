@@ -10,7 +10,7 @@
     "$date": "2024-02-19T08:52:48.997Z"
   },
   "isActive": true,
-  "image": "http://192.168.1.8:5001/image/1708332768985_equitas_bank.png"
+  "image": "http://localhost:5001/image/1708332768985_equitas_bank.png"
 },
 {
   "_id": {
@@ -24,7 +24,7 @@
     "$date": "2024-02-19T09:01:10.967Z"
   },
   "isActive": true,
-  "image": "http://192.168.1.8:5001/image/1708333270965_dena_bank.png"
+  "image": "http://localhost:5001/image/1708333270965_dena_bank.png"
 },
 {
   "_id": {
@@ -38,7 +38,7 @@
     "$date": "2024-02-19T08:55:27.157Z"
   },
   "isActive": true,
-  "image": "http://192.168.1.8:5001/image/1708332927153_KNAB_Finance (NBFC).jpeg"
+  "image": "http://localhost:5001/image/1708332927153_KNAB_Finance (NBFC).jpeg"
 },
 {
   "_id": {
@@ -52,7 +52,7 @@
     "$date": "2024-02-19T09:01:37.638Z"
   },
   "isActive": true,
-  "image": "http://192.168.1.8:5001/image/1708333297635_Bank_of Baroda.png"
+  "image": "http://localhost:5001/image/1708333297635_Bank_of Baroda.png"
 },
 {
   "_id": {
@@ -66,7 +66,7 @@
     "$date": "2024-02-19T09:02:10.718Z"
   },
   "isActive": true,
-  "image": "http://192.168.1.8:5001/image/1708333330716_KNAB_Finance (NBFC).jpeg"
+  "image": "http://localhost:5001/image/1708333330716_KNAB_Finance (NBFC).jpeg"
 },
 {
   "_id": {
@@ -91,7 +91,7 @@
     "$date": "2024-02-19T08:55:47.890Z"
   },
   "isActive": true,
-  "image": "http://192.168.1.8:5001/image/1708332947885_Bajaj_Finance (NBFC).png"
+  "image": "http://localhost:5001/image/1708332947885_Bajaj_Finance (NBFC).png"
 },
 {
   "_id": {
@@ -105,7 +105,7 @@
     "$date": "2024-02-19T09:11:53.462Z"
   },
   "isActive": true,
-  "image": "http://192.168.1.8:5001/image/1708333913459_axis.png"
+  "image": "http://localhost:5001/image/1708333913459_axis.png"
 },
 {
   "_id": {
@@ -119,7 +119,7 @@
     "$date": "2024-02-19T08:56:19.648Z"
   },
   "isActive": true,
-  "image": "http://192.168.1.8:5001/image/1708332979645_citi.png"
+  "image": "http://localhost:5001/image/1708332979645_citi.png"
 },
 {
   "_id": {
@@ -133,7 +133,7 @@
     "$date": "2024-02-19T08:56:37.318Z"
   },
   "isActive": true,
-  "image": "http://192.168.1.8:5001/image/1708332997316_Au_bank.png"
+  "image": "http://localhost:5001/image/1708332997316_Au_bank.png"
 },
 {
   "_id": {
@@ -147,7 +147,7 @@
     "$date": "2024-02-19T08:56:56.642Z"
   },
   "isActive": true,
-  "image": "http://192.168.1.8:5001/image/1708333016641_L&T_Finance (NBFC).png"
+  "image": "http://localhost:5001/image/1708333016641_L&T_Finance (NBFC).png"
 },
 {
   "_id": {
@@ -161,7 +161,7 @@
     "$date": "2024-02-19T08:57:11.294Z"
   },
   "isActive": true,
-  "image": "http://192.168.1.8:5001/image/1708333031293_HDFC_Bank.png"
+  "image": "http://localhost:5001/image/1708333031293_HDFC_Bank.png"
 },
 {
   "_id": {
@@ -186,7 +186,7 @@
     "$date": "2024-02-19T08:57:36.253Z"
   },
   "isActive": true,
-  "image": "http://192.168.1.8:5001/image/1708333056251_Navi_Finserv (NBFC).png"
+  "image": "http://localhost:5001/image/1708333056251_Navi_Finserv (NBFC).png"
 },
 {
   "_id": {
@@ -200,7 +200,7 @@
     "$date": "2024-02-19T08:57:52.577Z"
   },
   "isActive": true,
-  "image": "http://192.168.1.8:5001/image/1708333072575_indusind_bank.png"
+  "image": "http://localhost:5001/image/1708333072575_indusind_bank.png"
 },
 {
   "_id": {
@@ -214,7 +214,7 @@
     "$date": "2024-02-19T08:58:09.411Z"
   },
   "isActive": true,
-  "image": "http://192.168.1.8:5001/image/1708333089409_kotak.png"
+  "image": "http://localhost:5001/image/1708333089409_kotak.png"
 },
 {
   "_id": {
@@ -228,7 +228,7 @@
     "$date": "2024-02-19T08:58:25.708Z"
   },
   "isActive": true,
-  "image": "http://192.168.1.8:5001/image/1708333105706_Sbi.png"
+  "image": "http://localhost:5001/image/1708333105706_Sbi.png"
 },
 {
   "_id": {
@@ -242,7 +242,7 @@
     "$date": "2024-02-19T08:58:44.887Z"
   },
   "isActive": true,
-  "image": "http://192.168.1.8:5001/image/1708333124885_Yes_Bank.png"
+  "image": "http://localhost:5001/image/1708333124885_Yes_Bank.png"
 },
 {
   "_id": {
@@ -256,7 +256,7 @@
     "$date": "2024-02-19T09:03:28.617Z"
   },
   "isActive": true,
-  "image": "http://192.168.1.8:5001/image/1708333408611_icici_bank.png"
+  "image": "http://localhost:5001/image/1708333408611_icici_bank.png"
 },
 {
   "_id": {
@@ -270,7 +270,7 @@
     "$date": "2024-02-19T08:59:47.194Z"
   },
   "isActive": true,
-  "image": "http://192.168.1.8:5001/image/1708333187191_Standard_Chartered Bank.png"
+  "image": "http://localhost:5001/image/1708333187191_Standard_Chartered Bank.png"
 },
 {
   "_id": {
@@ -284,5 +284,5 @@
     "$date": "2024-02-19T09:00:23.929Z"
   },
   "isActive": true,
-  "image": "http://192.168.1.8:5001/image/1708333223927_Aditya_Birla (NBFC).png"
+  "image": "http://localhost:5001/image/1708333223927_Aditya_Birla (NBFC).png"
 }]

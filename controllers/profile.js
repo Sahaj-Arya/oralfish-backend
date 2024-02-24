@@ -53,7 +53,7 @@ const updateProfile = async (req, res) => {
   if (req?.files?.length > 0) {
     req?.files?.map((val, i) => {
       console.log(val, "j");
-      let image = "http://localhost:5001/image/" + val.filename;
+      let image = process.env.WEB_URL + "/image/" + val.filename;
 
       if (step_done == 2) {
         data["profile_image"] = image;

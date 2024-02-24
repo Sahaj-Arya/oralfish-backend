@@ -1,0 +1,15 @@
+db.banks.updateMany(
+  { "image": /^http:\/\/localhost:5001/ }, // Match documents where urlField starts with "http://localhost:5001"
+  [{
+    $set: {
+      "image": {
+        $concat: [
+          "http://api.dev.rojgar.new-india-consultants.com", // New base URL
+          { $substr: [ "$image", 21, { $subtract: [{ $strLenCP: "$image" }, 21] } ] } // Extract the substring after "http://localhost:5001"
+        ]
+      }
+    }
+  }]
+)
+
+
