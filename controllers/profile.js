@@ -40,6 +40,28 @@ const getProfile = async (req, res) => {
   }
 };
 
+const getAllProfiles = async (req, res) => {
+  try {
+    const users = await User.find({});
+
+    return res.send({
+      status: "success",
+      message: "Operation completed successfully",
+      data: users,
+    });
+  } catch (error) {
+    return res.send({
+      status: "error",
+      errors: [
+        {
+          message: "User not found",
+          code: StatusCodes.NOT_FOUND,
+        },
+      ],
+      message: "Operation failed",
+    });
+  }
+};
 const updateProfile = async (req, res) => {
   // const { phone, email, name, pan_no, dob } = req.body;
   // console.log(req.files, "image", req.body);
@@ -105,4 +127,4 @@ const getProfileWeb = async (req, res) => {
   return res.send({ data: offer[0], message: "Data Fetched", success: true });
 };
 
-module.exports = { getProfile, updateProfile, getProfileWeb };
+module.exports = { getProfile, updateProfile, getProfileWeb, getAllProfiles };

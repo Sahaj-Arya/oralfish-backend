@@ -4,12 +4,14 @@ const {
   getProfile,
   updateProfile,
   getProfileWeb,
+  getAllProfiles,
 } = require("../controllers/profile");
 const { upload } = require("../utils/storageUtil");
 
 const router = express.Router();
 
 router.route("/get-profile").post(getProfile);
+router.route("/get-all-profiles").get(getAllProfiles);
 router.route("/get-profile-web").post(getProfileWeb);
 router.route("/update-profile").post(upload.array("image", 10), updateProfile);
 

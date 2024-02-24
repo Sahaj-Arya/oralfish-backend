@@ -3,7 +3,7 @@ const { ObjectId } = require("mongodb");
 const Offer = require("../models/Offer");
 
 const getAllOffers = async (req, res) => {
-  const results = await Offer.aggregate([
+  const offer_doc = await Offer.aggregate([
     {
       $lookup: {
         from: "banks", // The collection to join with
@@ -36,7 +36,7 @@ const getAllOffers = async (req, res) => {
   ]);
 
   // console.log(results);
-  return res.send({ data: results, message: "Data Fetched", success: true });
+  // return res.send({ data: results, message: "Data Fetched", success: true });
 
   if (!offer_doc) {
     return res.send({ success: false, message: "failed" });
@@ -45,7 +45,7 @@ const getAllOffers = async (req, res) => {
 };
 
 const getOfferWeb = async (req, res) => {
-  const id = ObjectId(req.body.id); // Replace "your_id_here" with the actual ID
+  const id = ObjectId(req.body.id);
 
   const offer = await Offer.aggregate([
     {

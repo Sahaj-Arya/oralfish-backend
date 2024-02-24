@@ -13,6 +13,7 @@ const offerRouter = require("./routes/offers");
 const categoryRouter = require("./routes/category");
 const bannerRouter = require("./routes/banner");
 const bankRouter = require("./routes/bank");
+const leadRouter = require("./routes/lead");
 
 const { PORT, MONGO_URI } = process.env;
 
@@ -40,7 +41,7 @@ app.use("/api/v1/offers", offerRouter);
 app.use("/api/v1/category", categoryRouter);
 app.use("/api/v1/banner", bannerRouter);
 app.use("/api/v1/bank", bankRouter);
-app.use("/api/v1/lead", bankRouter);
+app.use("/api/v1/lead", leadRouter);
 app.use("/image", imageRouter);
 
 app.use(notFoundMiddleware);
