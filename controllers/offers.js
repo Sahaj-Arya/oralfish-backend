@@ -35,9 +35,6 @@ const getAllOffers = async (req, res) => {
     // Other stages like $match for filtering, $project for selecting fields, etc.
   ]);
 
-  // console.log(results);
-  // return res.send({ data: results, message: "Data Fetched", success: true });
-
   if (!offer_doc) {
     return res.send({ success: false, message: "failed" });
   }
@@ -88,12 +85,30 @@ const getOfferWeb = async (req, res) => {
 };
 
 const createOffer = async (req, res) => {
-  const document = await Offer.create({ ...req.body });
+  let { desc, type_id, bank_id, ...rest } = req.body;
+
+  type_id = new ObjectId(type_id);
+  bank_id = new ObjectId(bank_id);
+
+  desc.benefits = desc.benefits.split(",");
+  desc.documents = desc.documents.split(",");
+
+  let image;
+  if (req?.files?.length > 0) {
+    req?.files?.map((val, i) => {
+      let image = process.env.WEB_URL + "/image/" + val.filename;
+      rest.image = image;
+    });
+  }
+  // console.log({ desc, ...rest });
+  const document = await Offer.create({ desc, ...rest, bank_id, type_id });
 
   if (!document) {
     return res.send({ success: false, message: "failed" });
   }
-  return res.send({ data: document, message: "Data Fetched", success: true });
+  return res.send({ data: document, message: "Offer Created", success: true });
 };
 
 module.exports = { getAllOffers, createOffer, getOfferWeb };
+
+

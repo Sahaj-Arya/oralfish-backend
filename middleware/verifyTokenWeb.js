@@ -1,9 +1,9 @@
 const jwt = require("jsonwebtoken");
-const User = require("../models/User");
+const WebUsers = require("../models/WebUsers");
 
-// Middleware to verify JWT token
-const verifyToken = (req, res, next) => {
+const verifyTokenWeb = (req, res, next) => {
   const token = req.header("authorization");
+  console.log("verifyTokenWeb", token);
 
   if (!token) {
     return res
@@ -12,8 +12,8 @@ const verifyToken = (req, res, next) => {
   }
 
   jwt.verify(token, process.env.JWT_SECRET, async (err, user) => {
-    const checkUser = await User.findOne({ phone: user?.phone });
-
+    const checkUser = await WebUsers.findOne({ phone: user?.phone });
+    console.log(checkUser);
     if (!checkUser) {
       return res.status(401).json({ message: "Invalid user" });
     }
@@ -38,5 +38,4 @@ const verifyToken = (req, res, next) => {
   });
 };
 
-
-module.exports = verifyToken;
+module.exports = verifyTokenWeb;

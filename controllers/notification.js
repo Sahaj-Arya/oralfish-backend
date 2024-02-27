@@ -21,7 +21,6 @@ admin.initializeApp({
 });
 
 const singleNotification = async (req, res) => {
-  console.log("notificationRouter");
   const { token, title, body, image } = req.body;
 
   if (!token || !title || !body) {
@@ -87,4 +86,73 @@ const singleNotification = async (req, res) => {
     });
 };
 
-module.exports = { singleNotification };
+const multiNotification = async (req, res) => {
+  const { tokens = [], title, body, image } = req.body;
+
+console.log(tokens);
+
+  if (tokens.length < 1 || !title || !body) {
+    return res.status(400).json({ error: "Invalid request parameters" });
+  }
+
+  // let message = {
+  //   token,
+  //   notification: {
+  //     title,
+  //     body,
+  //   },
+  // };
+
+  // if (image) {
+  //   message.android = {
+  //     notification: {
+  //       imageUrl: image,
+  //     },
+  //   };
+  // }
+
+  let message = {
+    notification: {
+      title,
+      body,
+    },
+    android: {
+      notification: {
+        imageUrl: image,
+      },
+    },
+    apns: {
+      payload: {
+        aps: {
+          "mutable-content": 1,
+        },
+      },
+      fcm_options: {
+        image: image,
+      },
+    },
+    // webpush: {
+    //   headers: {
+    //     image: image,
+    //   },
+    // },
+  };
+
+  let arr = [];
+  tokens.forEach(async (token) => {
+    try {
+      const response = await admin.messaging().send({
+        ...message,
+        token: token,
+      });
+      console.log("Successfully sent message:", response);
+      arr.push(token);
+    } catch (error) {
+      console.error("Error sending message:", error.errorInfo.message);
+    }
+  });
+
+  res.status(200).json({ success: true, data: arr });
+};
+
+module.exports = { singleNotification, multiNotification };

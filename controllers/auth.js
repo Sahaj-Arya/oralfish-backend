@@ -77,6 +77,7 @@ const login = async (req, res) => {
 
 //  To Login
 const loginViaOtp = async (req, res) => {
+  // console.log(req.body, "hhh");
   const { phone, fcm_token = "" } = req.body;
   const existingUser = await User.findOne({ phone });
   const otp = Math.floor(100000 + Math.random() * 900000);
@@ -90,8 +91,11 @@ const loginViaOtp = async (req, res) => {
   const updateObj = { otp };
 
   if (fcm_token) {
-    if (!existingUser?.fcm_token?.includes(fcm_token)) {
-      updateObj["fcm_token"] = [...existingUser?.fcm_token, fcm_token];
+    if (existingUser && !existingUser?.fcm_token?.includes(fcm_token)) {
+      // console.log(new Set([...existingUser?.fcm_token, fcm_token]));
+      updateObj["fcm_token"] = Array.from(
+        new Set([...existingUser?.fcm_token, fcm_token])
+      );
     }
   }
 

@@ -1,5 +1,5 @@
 const express = require("express");
-const verifyToken = require("../middleware/verifyToken");
+const verifyTokenWeb = require("../middleware/verifyTokenWeb");
 const {
   getProfile,
   updateProfile,
@@ -12,7 +12,7 @@ const router = express.Router();
 
 router.route("/get-profile").post(getProfile);
 router.route("/get-all-profiles").get(getAllProfiles);
-router.route("/get-profile-web").post(getProfileWeb);
+router.route("/get-profile-web").post(verifyTokenWeb, getProfileWeb);
 router.route("/update-profile").post(upload.array("image", 10), updateProfile);
 
 module.exports = router;

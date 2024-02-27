@@ -62,6 +62,7 @@ const getAllProfiles = async (req, res) => {
     });
   }
 };
+
 const updateProfile = async (req, res) => {
   // const { phone, email, name, pan_no, dob } = req.body;
   // console.log(req.files, "image", req.body);
