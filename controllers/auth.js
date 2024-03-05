@@ -6,12 +6,32 @@ const User = require("../models/User");
 
 const WebUsers = require("../models/WebUsers");
 
+const generateReferralCode = async (length) => {
+  let result = "";
+  let characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let charactersLength = characters.length;
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+  }
+  return result;
+};
+
+const checkCode = async () => {
+  let res;
+  let result;
+  while (!res) {
+    result = await generateReferralCode(5);
+    res = await User.find({ referral_id: result });
+  }
+  return result;
+};
+
 // Register / Signup
 const register = async (req, res) => {
   const { firstName, lastName, email, password } = req.body;
 
   const existingUser = await WebUsers.findOne({ email });
-  console.log(existingUser);
+
   if (existingUser) {
     return res.status(401).json({ message: "User exists", success: true });
   }
@@ -77,7 +97,6 @@ const login = async (req, res) => {
 
 //  To Login
 const loginViaOtp = async (req, res) => {
-  // console.log(req.body, "hhh");
   const { phone, fcm_token = "" } = req.body;
   const existingUser = await User.findOne({ phone });
   const otp = Math.floor(100000 + Math.random() * 900000);
@@ -92,7 +111,6 @@ const loginViaOtp = async (req, res) => {
 
   if (fcm_token) {
     if (existingUser && !existingUser?.fcm_token?.includes(fcm_token)) {
-      // console.log(new Set([...existingUser?.fcm_token, fcm_token]));
       updateObj["fcm_token"] = Array.from(
         new Set([...existingUser?.fcm_token, fcm_token])
       );
@@ -100,6 +118,11 @@ const loginViaOtp = async (req, res) => {
   }
 
   if (existingUser) {
+    if (!existingUser?.referral_id) {
+      let code = await checkCode();
+      updateObj["referral_id"] = code;
+    }
+
     await User.updateOne(
       {
         phone,
@@ -107,6 +130,9 @@ const loginViaOtp = async (req, res) => {
       updateObj
     );
   } else {
+    const code = await checkCode();
+    updateObj["referral_id"] = code;
+
     await User.create({
       phone,
       ...updateObj,
@@ -129,12 +155,10 @@ const verifyOtp = async (req, res) => {
       .json({ message: `No User by phone ${phone}` });
   }
 
-  if (user.otp !== otp) {
-    return res.status(401).json({
-      message: "Invalid OTP",
-      success: false,
-      error: errorMessage,
-      code: 401,
+  if (user?.otp !== otp) {
+    return res.status(StatusCodes.NOT_FOUND).json({
+      status: StatusCodes.NOT_FOUND,
+      message: `Entered otp is incorect`,
     });
   }
 
@@ -147,13 +171,15 @@ const verifyOtp = async (req, res) => {
   );
 
   user.otp = "";
-  user.fcm_token = [...user?.fcm_token, fcm_token];
-  user.token = [...user.token, token];
+  user.fcm_token = Array.from(new Set([...user?.fcm_token, fcm_token]));
+  user.token = Array.from(new Set([...user.token, token]));
   user.isPhoneVerified = true;
 
   await user.save();
 
-  res.status(StatusCodes.CREATED).json({ ...user._doc, token });
+  res
+    .status(StatusCodes.CREATED)
+    .json({ ...user._doc, token, message: "Login successful" });
 };
 
 const logout = async (req, res) => {

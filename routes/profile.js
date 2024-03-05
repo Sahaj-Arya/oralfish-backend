@@ -5,6 +5,7 @@ const {
   updateProfile,
   getProfileWeb,
   getAllProfiles,
+  updateBank,
 } = require("../controllers/profile");
 const { upload } = require("../utils/storageUtil");
 
@@ -14,5 +15,6 @@ router.route("/get-profile").post(getProfile);
 router.route("/get-all-profiles").get(getAllProfiles);
 router.route("/get-profile-web").post(verifyTokenWeb, getProfileWeb);
 router.route("/update-profile").post(upload.array("image", 10), updateProfile);
+router.route("/update-user-bank").post(upload.array("image", 10), updateBank);
 
 module.exports = router;

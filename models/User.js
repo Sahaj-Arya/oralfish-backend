@@ -25,7 +25,7 @@ const UserSchema = new mongoose.Schema({
   income: { type: String, default: "" },
   occupation: { type: String, default: "" },
   work_experience: { type: String, default: "" },
-  work_experience: { type: String, default: "" },
+  referral_id: { type: String, default: "" },
   bank_details: [
     {
       bank_name: String,

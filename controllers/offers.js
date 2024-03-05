@@ -1,6 +1,7 @@
 const { ObjectId } = require("mongodb");
 
 const Offer = require("../models/Offer");
+const { StatusCodes } = require("http-status-codes");
 
 const getAllOffers = async (req, res) => {
   const offer_doc = await Offer.aggregate([
@@ -109,6 +110,23 @@ const createOffer = async (req, res) => {
   return res.send({ data: document, message: "Offer Created", success: true });
 };
 
-module.exports = { getAllOffers, createOffer, getOfferWeb };
+const getOfferById = async (req, res) => {
+  const { id } = req.body;
+  if (!id) {
+    return res
+      .status(StatusCodes.NOT_FOUND)
+      .json({ message: "Id cannot be empty", success: false });
+  }
 
+  const result = await Offer.findById(id);
+  if (!result) {
+    return res
+      .status(StatusCodes.NOT_FOUND)
+      .json({ message: `No Data Found by &{id}`, success: false });
+  }
+  return res
+    .status(StatusCodes.ACCEPTED)
+    .json({ message: `Data found`, success: true, data: result });
+};
 
+module.exports = { getAllOffers, createOffer, getOfferWeb, getOfferById };
