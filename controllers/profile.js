@@ -1,14 +1,11 @@
-const { ObjectId } = require("mongodb");
 const User = require("../models/User");
-// const Users = require("../models/Users");
 const { StatusCodes } = require("http-status-codes");
 
 const getProfile = async (req, res) => {
   const { id } = req.body;
 
   try {
-    const objectId = new ObjectId(id);
-    const user = await User.findOne({ _id: objectId });
+    const user = await User.findById(id);
     if (!user) {
       return res.send({
         status: "error",
