@@ -91,10 +91,13 @@ const createOffer = async (req, res) => {
   type_id = new ObjectId(type_id);
   bank_id = new ObjectId(bank_id);
 
-  desc.benefits = desc.benefits.split(",");
-  desc.documents = desc.documents.split(",");
+  if (desc?.features) {
+    desc.features = desc.features.split("\r\n"); // Modify desc.features to be an array
+  }
+  if (desc?.documents_required) {
+    desc.documents_required = desc.documents_required.split("\r\n");
+  }
 
-  let image;
   if (req?.files?.length > 0) {
     req?.files?.map((val, i) => {
       let image = process.env.WEB_URL + "/image/" + val.filename;
@@ -108,6 +111,71 @@ const createOffer = async (req, res) => {
     return res.send({ success: false, message: "failed" });
   }
   return res.send({ data: document, message: "Offer Created", success: true });
+};
+
+const updateOffer = async (req, res) => {
+  let { desc, id, bank_id, ...rest } = req.body;
+  let data = {};
+
+  bank_id = new ObjectId(bank_id);
+
+  if (desc?.features) {
+    desc.features = desc.features.split("\r\n");
+  }
+  if (desc?.documents_required) {
+    desc.documents_required = desc.documents_required.split("\r\n");
+  }
+
+  if (req?.files?.length > 0) {
+    req?.files?.map((val, i) => {
+      let image = process.env.WEB_URL + "/image/" + val.filename;
+      rest.image = image;
+    });
+  }
+
+  const document = await Offer.findOneAndUpdate(id, { desc, ...rest, bank_id });
+
+  if (!document) {
+    return res.send({ success: false, message: "failed" });
+  }
+  return res.send({ data: document, message: "Offer Updated", success: true });
+};
+
+const updateRank = async (req, res) => {
+  const { id, new_rank } = req.body;
+
+  const result = await Offer.findById(id);
+
+  if (!result) {
+    return res
+      .status(StatusCodes.NOT_FOUND)
+      .send({ success: false, message: "Document not found" });
+  }
+
+  const currentRank = result.rank;
+  console.log(result);
+  result.rank = new_rank;
+
+  await result.save();
+  return res
+    .status(StatusCodes.CREATED)
+    .send({ success: true, message: "Updated successfully" });
+
+  // const update = await Offer.updateMany(
+  //   { rank: { $gt: currentRank } },
+  //   { $inc: { rank: 1 } }
+  // );
+  // if (update) {
+  //   return res
+  //     .status(StatusCodes.CREATED)
+  //     .send({ success: true, message: "Updated successfully", update });
+  // }
+  // } catch (error) {
+  //   console.error("Error updating rank:", error);
+  //   return res
+  //     .status(StatusCodes.INTERNAL_SERVER_ERROR)
+  //     .send({ success: false, message: "Failed to update rank" });
+  // }
 };
 
 const getOfferById = async (req, res) => {
@@ -129,4 +197,11 @@ const getOfferById = async (req, res) => {
     .json({ message: `Data found`, success: true, data: result });
 };
 
-module.exports = { getAllOffers, createOffer, getOfferWeb, getOfferById };
+module.exports = {
+  getAllOffers,
+  createOffer,
+  getOfferWeb,
+  getOfferById,
+  updateOffer,
+  updateRank,
+};

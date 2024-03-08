@@ -85,7 +85,7 @@ const login = async (req, res) => {
     { email: email, id: user._id },
     process.env.JWT_SECRET,
     {
-      expiresIn: "30d",
+      expiresIn: user?.role === "admin" ? "30d" : "7d",
     }
   );
 
@@ -233,4 +233,15 @@ const logout = async (req, res) => {
   }
 };
 
-module.exports = { register, login, loginViaOtp, verifyOtp, logout };
+const tokenVerification = async (req, res) => {
+  console.log(req.user, "gfd");
+};
+
+module.exports = {
+  register,
+  login,
+  loginViaOtp,
+  verifyOtp,
+  logout,
+  tokenVerification,
+};

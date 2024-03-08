@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const { StatusCodes } = require("http-status-codes");
+const WebUsers = require("../models/WebUsers");
 
 const getProfile = async (req, res) => {
   const { id } = req.body;
@@ -61,13 +62,14 @@ const getAllProfiles = async (req, res) => {
 };
 
 const getProfileWeb = async (req, res) => {
-  const id = req.body.id; // Replace "your_id_here" with the actual ID
+  console.log(req.user, "user");
+  const id = req.body.id;
 
-  const offer = await User.findById(id);
-  if (!offer) {
-    return res.send({ success: false, message: "failed" });
+  const user = await WebUsers.findById(id);
+  if (!user) {
+    return res.send({ success: false, message: "User not found" });
   }
-  return res.send({ data: offer[0], message: "Data Fetched", success: true });
+  return res.send({ data: user, message: "Data Fetched", success: true });
 };
 
 const updateProfile = async (req, res) => {

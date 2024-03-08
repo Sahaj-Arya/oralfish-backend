@@ -3,7 +3,6 @@ const WebUsers = require("../models/WebUsers");
 
 const verifyTokenWeb = (req, res, next) => {
   const token = req.header("authorization");
-  console.log("verifyTokenWeb", token);
 
   if (!token) {
     return res
@@ -12,20 +11,9 @@ const verifyTokenWeb = (req, res, next) => {
   }
 
   jwt.verify(token, process.env.JWT_SECRET, async (err, user) => {
-    const checkUser = await WebUsers.findOne({ phone: user?.phone });
-    console.log(checkUser);
+    const checkUser = await WebUsers.findOne({ email: user?.email });
+
     if (!checkUser) {
-      return res.status(401).json({ message: "Invalid user" });
-    }
-
-    if (checkUser?.token?.length < 1) {
-      res.status(200).json({
-        message: "Log out successful",
-        success: true,
-      });
-    }
-
-    if (!checkUser?.token.includes(token)) {
       return res.status(401).json({ message: "Invalid token!!!!" });
     }
 
