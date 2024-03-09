@@ -26,11 +26,11 @@ const verifyToken = (req, res, next) => {
     }
 
     if (!checkUser?.token.includes(token)) {
-      return res.status(401).json({ message: "Invalid token!!!!" });
+      return res.status(401).json({ message: "Invalid token" });
     }
 
     if (err) {
-      return res.status(401).json({ message: "Invalid token!!!!" });
+      return res.status(401).json({ message: "Invalid token" });
     }
 
     req.user = checkUser;

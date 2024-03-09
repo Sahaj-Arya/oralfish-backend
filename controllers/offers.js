@@ -1,24 +1,67 @@
 const { ObjectId } = require("mongodb");
+const { StatusCodes } = require("http-status-codes");
 
 const Offer = require("../models/Offer");
-const { StatusCodes } = require("http-status-codes");
 
 const getAllOffers = async (req, res) => {
   const offer_doc = await Offer.aggregate([
     {
-      $lookup: {
-        from: "banks", // The collection to join with
-        localField: "bank_id", // ObjectId field in the 'offer' collection
-        foreignField: "_id", // ObjectId _id field in the 'bank' collection
-        as: "bank_info", // Output array field for joined bank documents
+      $match: {
+        status: true,
       },
     },
     {
       $lookup: {
-        from: "category", // The collection to join with
-        localField: "type_id", // ObjectId field in the 'offer' collection
-        foreignField: "_id", // ObjectId _id field in the 'category' collection
-        as: "category_info", // Output array field for joined category documents
+        from: "banks",
+        localField: "bank_id",
+        foreignField: "_id",
+        as: "bank_info",
+      },
+    },
+    {
+      $lookup: {
+        from: "category",
+        localField: "type_id",
+        foreignField: "_id",
+        as: "category_info",
+      },
+    },
+    {
+      $unwind: {
+        path: "$bank_info",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $unwind: {
+        path: "$category_info",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+  ]);
+
+  if (!offer_doc) {
+    return res.send({ success: false, message: "failed" });
+  }
+  return res.send({ data: offer_doc, message: "Data Fetched", success: true });
+};
+
+const getAllOffersWeb = async (req, res) => {
+  const offer_doc = await Offer.aggregate([
+    {
+      $lookup: {
+        from: "banks",
+        localField: "bank_id",
+        foreignField: "_id",
+        as: "bank_info",
+      },
+    },
+    {
+      $lookup: {
+        from: "category",
+        localField: "type_id",
+        foreignField: "_id",
+        as: "category_info",
       },
     },
     {
@@ -197,6 +240,20 @@ const getOfferById = async (req, res) => {
     .json({ message: `Data found`, success: true, data: result });
 };
 
+const updateOfferStatus = async (req, res) => {
+  const { id, status } = req.body;
+
+  const offer = await Offer.findByIdAndUpdate(id, { status });
+  if (!offer) {
+    return res
+      .status(StatusCodes.NOT_FOUND)
+      .json({ message: "Offer does not exists", success: false });
+  }
+  return res
+    .status(StatusCodes.ACCEPTED)
+    .json({ message: `Offer Status Updated `, success: true, offer });
+};
+
 module.exports = {
   getAllOffers,
   createOffer,
@@ -204,4 +261,6 @@ module.exports = {
   getOfferById,
   updateOffer,
   updateRank,
+  updateOfferStatus,
+  getAllOffersWeb,
 };
