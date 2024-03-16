@@ -17,7 +17,6 @@ const LeadSchema = new mongoose.Schema(
     settled: { type: Boolean, default: false },
     isComplete: { type: Boolean, default: false },
     link_with_click_id: { type: String, default: "" },
-    sub_id: { type: String, default: "" },
   },
   {
     timestamps: {

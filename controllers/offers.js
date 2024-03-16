@@ -85,6 +85,53 @@ const getAllOffersWeb = async (req, res) => {
   return res.send({ data: offer_doc, message: "Data Fetched", success: true });
 };
 
+const getSelectedOffersWeb = async (req, res) => {
+
+  const id = ObjectId(req.body.id);
+
+  const DATA = [
+    {
+      $lookup: {
+        from: "banks",
+        localField: "bank_id",
+        foreignField: "_id",
+        as: "bank_info",
+      },
+    },
+    {
+      $lookup: {
+        from: "category",
+        localField: "type_id",
+        foreignField: "_id",
+        as: "category_info",
+      },
+    },
+    {
+      $unwind: {
+        path: "$bank_info",
+        preserveNullAndEmptyArrays: true, // Optional: Keeps documents that do not match the lookup
+      },
+    },
+    {
+      $unwind: {
+        path: "$category_info",
+        preserveNullAndEmptyArrays: true, // Optional: Keeps documents that do not match the lookup
+      },
+    },
+    // Other stages like $match for filtering, $project for selecting fields, etc.
+  ];
+
+  if (req.body.id != "65d84d29c5f6515b756a3704") {
+    DATA.push({ $match: { type_id: id } });
+  }
+  const offer_doc = await Offer.aggregate(DATA);
+
+  if (!offer_doc) {
+    return res.send({ success: false, message: "failed" });
+  }
+  return res.send({ data: offer_doc, message: "Data Fetched", success: true });
+};
+
 const getOfferWeb = async (req, res) => {
   const id = ObjectId(req.body.id);
 
@@ -147,7 +194,7 @@ const createOffer = async (req, res) => {
       rest.image = image;
     });
   }
-  // console.log({ desc, ...rest });
+
   const document = await Offer.create({ desc, ...rest, bank_id, type_id });
 
   if (!document) {
@@ -176,11 +223,19 @@ const updateOffer = async (req, res) => {
     });
   }
 
-  const document = await Offer.findOneAndUpdate(id, { desc, ...rest, bank_id });
+  const document = await Offer.findOneAndUpdate(
+    { _id: id },
+    {
+      desc,
+      ...rest,
+      bank_id,
+    }
+  );
 
   if (!document) {
     return res.send({ success: false, message: "failed" });
   }
+
   return res.send({ data: document, message: "Offer Updated", success: true });
 };
 
@@ -196,7 +251,6 @@ const updateRank = async (req, res) => {
   }
 
   const currentRank = result.rank;
-  console.log(result);
   result.rank = new_rank;
 
   await result.save();
@@ -263,4 +317,5 @@ module.exports = {
   updateRank,
   updateOfferStatus,
   getAllOffersWeb,
+  getSelectedOffersWeb,
 };

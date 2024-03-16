@@ -17,17 +17,10 @@ const offerSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  annual_fees: {
-    type: String,
-    required: true,
-  },
-  joining_fees: {
-    type: String,
-    required: true,
-  },
+
   image: {
     type: String,
-    required: true,
+    required: false,
   },
   apply_link: {
     type: String,
@@ -36,18 +29,18 @@ const offerSchema = new mongoose.Schema({
   desc: {
     eligibility: {
       type: String,
-      required: true,
+      required: false,
     },
     features: [
       {
         type: String,
-        required: true,
+        required: false,
       },
     ],
     documents_required: [
       {
         type: String,
-        required: true,
+        required: false,
       },
     ],
   },
@@ -65,12 +58,13 @@ const offerSchema = new mongoose.Schema({
   },
   created_at: {
     type: Date,
-    default: Date.now, // Automatically set to the current date/time when a new document is created
+    default: Date.now,
   },
   updated_at: {
     type: Date,
-    default: Date.now, // Automatically set to the current date/time when a document is updated
+    default: Date.now,
   },
+
   bank_name: {
     type: String,
     required: true,
@@ -78,6 +72,69 @@ const offerSchema = new mongoose.Schema({
   earning: {
     type: Number,
     required: true,
+  },
+  // credit card
+
+  annual_fees: {
+    type: String,
+    required: false,
+  },
+  joining_fees: {
+    type: String,
+    required: false,
+  },
+
+  // for savings acc
+  interest_rate: {
+    type: String,
+    required: false,
+  },
+  opening_charge: {
+    type: String,
+    required: false,
+  },
+  min_balance: {
+    type: String,
+    required: false,
+  },
+
+  // loan
+  process_fee: {
+    type: String,
+    required: false,
+  },
+  tenure_range: {
+    type: String,
+    required: false,
+  },
+  interest_range: {
+    type: String,
+    required: false,
+  },
+  loan_type: {
+    type: String,
+    required: false,
+  },
+  // demat
+  demat_fee: { type: String, required: false },
+  exhange: {
+    type: String,
+    required: false,
+  },
+
+  trading_fee: {
+    type: String,
+    required: false,
+  },
+
+  //trading
+  min_investment: {
+    type: String,
+    required: false,
+  },
+  return: {
+    type: String,
+    required: false,
   },
 });
 

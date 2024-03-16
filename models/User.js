@@ -1,8 +1,7 @@
 const mongoose = require("mongoose");
 
 const UserSchema = new mongoose.Schema({
-  firstName: { type: String, default: "" },
-  lastName: { type: String, default: "" },
+  name: { type: String, default: "" },
   email: {
     type: String,
     default: "",
@@ -19,7 +18,7 @@ const UserSchema = new mongoose.Schema({
   profile_image: { type: String, default: "" },
   dob: { type: String, default: "" },
   gender: { type: String, default: "" },
-  address: { type: String, default: "" },
+  pincode: { type: String, default: "" },
   pan_image: { type: String, default: "" },
   pan_no: { type: String, default: "" },
   income: { type: String, default: "" },

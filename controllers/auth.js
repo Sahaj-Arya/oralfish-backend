@@ -5,7 +5,6 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
 const WebUsers = require("../models/WebUsers");
-const { default: axios } = require("axios");
 
 const generateReferralCode = async (length) => {
   let result = "";
@@ -29,20 +28,19 @@ const checkCode = async () => {
 
 // Register / Signup
 const register = async (req, res) => {
-  const { firstName, lastName, email, password } = req.body;
+  const { name, email, password } = req.body;
 
   const existingUser = await WebUsers.findOne({ email });
 
   if (existingUser) {
-    return res.status(401).json({ message: "User exists", success: true });
+    return res.status(401).json({ message: "User exists", success: false });
   }
 
   const salt = await bcrypt.genSalt(10);
   const encryptedPassword = await bcrypt.hash(password, salt);
 
   const user = await WebUsers.create({
-    firstName,
-    lastName,
+    name,
     email,
     password: encryptedPassword,
   });
@@ -59,7 +57,6 @@ const register = async (req, res) => {
   await user.save();
 
   res.status(StatusCodes.CREATED).json({
-    user: { id: user._id, email, firstName, lastName },
     message: "User registered successfully",
     success: true,
   });
@@ -189,7 +186,7 @@ const logout = async (req, res) => {
   const user = req.user;
 
   if (user.token.length < 1) {
-    console.log("data");
+    // console.log("data");
     return res.status(StatusCodes.CREATED).json({
       message: "Log out successful",
       success: true,
@@ -235,7 +232,7 @@ const logout = async (req, res) => {
 };
 
 const tokenVerification = async (req, res) => {
-  console.log(req.user, "gfd");
+  // console.log(req.user, "gfd");
 };
 
 module.exports = {

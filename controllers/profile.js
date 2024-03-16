@@ -62,7 +62,7 @@ const getAllProfiles = async (req, res) => {
 };
 
 const getProfileWeb = async (req, res) => {
-  console.log(req.user, "user");
+  // console.log(req.user, "user");
   const id = req.body.id;
 
   const user = await WebUsers.findById(id);
@@ -73,18 +73,16 @@ const getProfileWeb = async (req, res) => {
 };
 
 const updateProfile = async (req, res) => {
-  // const { phone, email, name, pan_no, dob } = req.body;
-  // console.log(req.files, "image", req.body);
-
   let data = {};
 
   const { account_no, bank_ifsc, bank_name } = req.body;
   let obj = { account_no, bank_ifsc, bank_name };
 
   let step_done = req.body.stepsDone;
+
   if (req?.files?.length > 0) {
     req?.files?.map((val, i) => {
-      console.log(val, "j");
+      // console.log(val, "j");
       let image = process.env.WEB_URL + "/image/" + val.filename;
 
       if (step_done == 2) {
@@ -100,6 +98,7 @@ const updateProfile = async (req, res) => {
       }
     });
   }
+
   if (step_done == 4) {
     const user = await User.findOne({ phone: req.body.phone });
     let bank_details = [...user?.bank_details, obj];
@@ -109,7 +108,7 @@ const updateProfile = async (req, res) => {
     data = { ...req.body, ...data };
   }
 
-  console.log(data);
+  // console.log(data);
 
   try {
     const updatedUser = await User.findOneAndUpdate(
@@ -120,7 +119,7 @@ const updateProfile = async (req, res) => {
     if (!updatedUser) {
       return res.status(404).send("User not found");
     }
-
+    // console.log(updatedUser);
     res.status(200).send({ message: "User updated successfully" });
   } catch (error) {
     res.status(500).send(error.message);
