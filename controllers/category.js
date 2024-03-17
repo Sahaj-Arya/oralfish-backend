@@ -44,4 +44,29 @@ const createCategory = async (req, res) => {
   });
 };
 
-module.exports = { getAllCategory, createCategory };
+const updateCategory = async (req, res) => {
+  const { id, ...rest } = req.body;
+
+  console.log(id, rest.status);
+
+  const result = await Category.findOneAndUpdate(
+    { _id: id },
+    {
+      ...rest,
+    }
+  );
+  // console.log(result);
+  if (!result) {
+    return res.send({
+      message: "Failed to Update",
+      success: false,
+    });
+  }
+  return res.send({
+    data: result,
+    message: "Updated Successfully",
+    success: true,
+  });
+};
+
+module.exports = { getAllCategory, createCategory, updateCategory };

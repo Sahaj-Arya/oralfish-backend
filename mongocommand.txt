@@ -13,3 +13,9 @@ db.banks.updateMany(
 )
 
 
+rename field 
+db.yourCollectionName.updateMany(
+  { }, // Filter to match all documents in the collection
+  { $rename: { "isActive": "status" } } // Update the key name from "isActive" to "status"
+);
+
