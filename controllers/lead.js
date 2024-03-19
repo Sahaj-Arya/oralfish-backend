@@ -193,4 +193,30 @@ const CreateLead = async (req, res) => {
   });
 };
 
-module.exports = { getAllLeads, CreateLead, getLeadsById };
+const settleLeads = async (req, res) => {
+  // console.log(req.body.data);
+  let updateData = req.body.data;
+  // return;
+  const bulkOperations = updateData.map((e) => ({
+    updateMany: {
+      filter: { offer_id: e?.offer_id, click_id: e?.click_id },
+      update: { isComplete: e?.status },
+      upsert: false,
+    },
+  }));
+
+  const result = await Lead.bulkWrite(bulkOperations);
+
+  if (!result) {
+    return res.send({ success: false, message: "Failed to update" });
+  }
+  // const modifiedIds = result.result.map((res) => res._id);
+
+  return res.send({
+    // message: `${result.modifiedCount} documents updated successfully`,
+    message: result,
+    success: true,
+  });
+};
+
+module.exports = { getAllLeads, CreateLead, getLeadsById, settleLeads };

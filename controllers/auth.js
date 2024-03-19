@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
 const WebUsers = require("../models/WebUsers");
+const { default: axios } = require("axios");
 
 const generateReferralCode = async (length) => {
   let result = "";
@@ -26,7 +27,7 @@ const checkCode = async () => {
   return result;
 };
 
-// Register / Signup
+// Register/Signup
 const register = async (req, res) => {
   const { name, email, password } = req.body;
 

@@ -1,0 +1,50 @@
+Healthassure Insta Agency Web App Documentation
+============================
+
+Introduction:
+--------------
+This documentation provides an overview of the Healthassure Insta Web, its components, and how to run it locally for development purposes.
+
+Running the App:
+-----------------
+To run the app locally, follow these steps:
+
+1. Clone the repository:
+    git clone https://github.com/healthassure-github/HA-Insta-Web.git
+
+
+2. Navigate to the project directory:
+    cd HA-Insta-Web
+
+3. Switch to DEV branch
+
+4. Install nvm
+    -install nvm for mac / windows first
+
+5. User nvm to install and switch to node v14 as our project requires it.
+   -nvm install 14
+   -nvm use 14
+
+7. Install dependencies using npm or yarn:
+    npm install -f
+    # or
+    yarn install
+
+6. Install SASS for styling:
+    -npm - sass
+    -Run npm i sass to install SASS, which is a powerful CSS extension language that lets you use  
+     variables, nested rules, mixins, functions, and more, all with a fully CSS-compatible syntax.
+
+7.  Rebuild SASS:
+    -run npm rebuild sass
+    -Once SASS is installed, run npm rebuild sass to ensure that SASS is properly set up and compiled 
+     according to your system's architecture and Node version.
+
+8. Start the development server:
+    npm start
+    # or
+    yarn start
+
+9. Open your web browser and visit http://localhost:3000 to view the app.
+
+
