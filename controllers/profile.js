@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const { StatusCodes } = require("http-status-codes");
 const WebUsers = require("../models/WebUsers");
+const { ObjectId } = require("mongodb");
 
 const getProfile = async (req, res) => {
   const { id } = req.body;
@@ -211,10 +212,46 @@ const updateBank = async (req, res) => {
     .json({ message: "Bank detail added successfully", user });
 };
 
+const setDefaultBank = async (req, res) => {
+  try {
+    const { id, bank_id } = req.body;
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    if (!Array.isArray(user.bank_details)) {
+      return res.status(400).json({ error: "Invalid bank details" });
+    }
+
+    const updatedBankDetails = user.bank_details.map((e) => {
+      if (e?._id.toString() === bank_id) {
+        e.default = true;
+      } else {
+        e.default = false;
+      }
+      return e;
+    });
+
+    user.bank_details = updatedBankDetails;
+    await user.save();
+
+    // console.log(user.bank_details);
+    return res
+      .status(200)
+      .json({ message: "Default bank updated successfully" });
+  } catch (error) {
+    console.error("Error in setDefaultBank:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
 module.exports = {
   updateBank,
   getProfile,
   updateProfile,
   getProfileWeb,
   getAllProfiles,
+  setDefaultBank,
 };

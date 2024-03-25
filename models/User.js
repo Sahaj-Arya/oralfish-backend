@@ -32,6 +32,21 @@ const UserSchema = new mongoose.Schema({
       account_no: String,
       bank_passbook: String,
       cancelled_check: String,
+      default: Boolean,
+    },
+  ],
+  lead_settlement: [
+    {
+      amount: Number,
+      rejected: Boolean,
+      pending: Boolean,
+      settled: Boolean,
+      created: String,
+      updated: String,
+      offer_id: { type: mongoose.Schema.Types.ObjectId, required: false },
+      order_id: { type: mongoose.Schema.Types.ObjectId, required: false },
+      referral_id: String,
+      click_id: String,
     },
   ],
 });

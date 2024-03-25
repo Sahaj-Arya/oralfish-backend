@@ -110,9 +110,18 @@ const loginViaOtp = async (req, res) => {
 
   if (fcm_token) {
     if (existingUser && !existingUser?.fcm_token?.includes(fcm_token)) {
-      updateObj["fcm_token"] = Array.from(
-        new Set([...existingUser?.fcm_token, fcm_token])
-      );
+      // updateObj["fcm_token"] = Array.from(
+      //   new Set([...existingUser?.fcm_token, fcm_token])
+      // );
+      let arr = existingUser?.fcm_token;
+      if (existingUser?.fcm_token?.length >= 2) {
+        arr?.slice(1);
+        arr.push(fcm_token);
+        updateObj["fcm_token"] = arr;
+      } else {
+        arr.push(fcm_token);
+        updateObj["fcm_token"] = arr;
+      }
     }
   }
 
@@ -145,7 +154,7 @@ const loginViaOtp = async (req, res) => {
 };
 
 const verifyOtp = async (req, res) => {
-  const { phone, otp, fcm_token } = req.body;
+  const { phone, otp } = req.body;
 
   const user = await User.findOne({ phone });
   if (!user) {
@@ -169,9 +178,17 @@ const verifyOtp = async (req, res) => {
     }
   );
 
+  let arr = user?.token;
+  if (user?.token?.length >= 3) {
+    arr = arr.slice(1);
+    arr.push(token);
+  } else {
+    arr.push(token);
+  }
+
+  user.token = arr;
+
   user.otp = "";
-  user.fcm_token = Array.from(new Set([...user?.fcm_token, fcm_token]));
-  user.token = Array.from(new Set([...user.token, token]));
   user.isPhoneVerified = true;
 
   await user.save();

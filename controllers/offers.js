@@ -86,7 +86,6 @@ const getAllOffersWeb = async (req, res) => {
 };
 
 const getSelectedOffersWeb = async (req, res) => {
-
   const id = ObjectId(req.body.id);
 
   const DATA = [
@@ -122,7 +121,7 @@ const getSelectedOffersWeb = async (req, res) => {
   ];
 
   if (req.body.id != "65d84d29c5f6515b756a3704") {
-    DATA.push({ $match: { type_id: id } });
+    DATA.push({ $match: { type_id: id, status: true } });
   }
   const offer_doc = await Offer.aggregate(DATA);
 

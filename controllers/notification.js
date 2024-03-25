@@ -1,4 +1,5 @@
 const admin = require("firebase-admin");
+const { sendEmail } = require("../utils/sendEmail");
 
 const serviceAccount = {
   type: "service_account",
@@ -89,7 +90,7 @@ const singleNotification = async (req, res) => {
 const multiNotification = async (req, res) => {
   const { tokens = [], title, body, image } = req.body;
 
-console.log(tokens);
+  console.log(tokens);
 
   if (tokens.length < 1 || !title || !body) {
     return res.status(400).json({ error: "Invalid request parameters" });
@@ -155,4 +156,54 @@ console.log(tokens);
   res.status(200).json({ success: true, data: arr });
 };
 
-module.exports = { singleNotification, multiNotification };
+const nodemailer = require("nodemailer");
+const { StatusCodes } = require("http-status-codes");
+const { settlement } = require("../utils/template/settlement");
+
+// Function to send email
+async function sendSingleEmail(req, res) {
+  let recipient = req.body.email;
+  let name = req.body.name;
+
+  try {
+    // Create a transporter object using the default SMTP transport
+    const transporter = nodemailer.createTransport({
+      host: "mail.new-india-consultants.com", // SMTP server hostname
+      port: 465, // TCP port to connect to
+      secure: true, // true for 465, false for other ports; deprecated, should be false for port 587
+      auth: {
+        user: "rojgar@new-india-consultants.com", // SMTP username
+        pass: "Foodfoodfood1@", // SMTP password
+      },
+    });
+
+    // Setup email data
+    const mailOptions = {
+      from: '"Rojgar App" <rojgar@new-india-consultants.com>', // sender address
+      to: recipient, // list of receivers
+      // subject: subject, // Subject line
+      // html: body // HTML body
+      subject: "Subject of the email", // Subject line
+      html: settlement(name),
+    };
+
+    // Send email
+    const info = await transporter.sendMail(mailOptions);
+    return res.status(StatusCodes.CREATED).json({
+      success: true,
+      message: "Message sent successfully!",
+      messageId: info,
+    });
+  } catch (error) {
+    return res
+      .status(StatusCodes.NOT_MODIFIED)
+      .json({ success: false, error: error.message });
+  }
+}
+
+module.exports = {
+  singleNotification,
+  multiNotification,
+  sendSingleEmail,
+  sendEmail,
+};

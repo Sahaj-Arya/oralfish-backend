@@ -1,5 +1,9 @@
 const Lead = require("../models/Lead");
+const Offer = require("../models/Offer");
+const User = require("../models/User");
+const Orders = require("../models/Orders");
 const { ObjectId } = require("mongodb");
+const { checkClickIdExists } = require("../utils/specialFunctions");
 
 const getAllLeads = async (req, res) => {
   let limit = 10;
@@ -180,7 +184,7 @@ const getLeadsById = async (req, res) => {
   return res.send({ data: lead_doc, message: "Data Fetched", success: true });
 };
 
-const CreateLead = async (req, res) => {
+const createLead = async (req, res) => {
   const createdUser = await Lead.create(req.body);
   if (!createdUser) {
     return res.send({ success: false, message: "Failed to create lead", err });
@@ -194,29 +198,79 @@ const CreateLead = async (req, res) => {
 };
 
 const settleLeads = async (req, res) => {
-  // console.log(req.body.data);
+  // console.log(req.body.data, "exw");
   let updateData = req.body.data;
   // return;
-  const bulkOperations = updateData.map((e) => ({
-    updateMany: {
-      filter: { offer_id: e?.offer_id, click_id: e?.click_id },
-      update: { isComplete: e?.status },
-      upsert: false,
-    },
-  }));
+  const bulkOperations = updateData.map((e) => {
+    return {
+      updateMany: {
+        filter: {
+          affiliate_id: e?.refferal_id,
+          click_id: e?.click_id,
+          isComplete: false,
+        },
+        update: { isComplete: e?.status },
+        upsert: false,
+      },
+    };
+  });
+
+  for (const e of updateData) {
+    if (e?.status === true) {
+      const offer = await Offer.findOne({ title: e?.offer_name });
+      if (!offer) {
+        break;
+      }
+
+      const data = {
+        amount: offer?.earning,
+        rejected: false,
+        pending: true,
+        settled: false,
+        created: Date.now(),
+        updated: Date.now(),
+        offer_id: new ObjectId(offer?._id),
+        referral_id: e?.refferal_id,
+        click_id: e?.click_id,
+      };
+
+      let user = await User.findOne({ referral_id: e?.refferal_id });
+
+      if (checkClickIdExists(user?.lead_settlement, e?.click_id)) {
+        break;
+      }
+      let orderDetails = {
+        amount: offer?.earning,
+        rejected: false,
+        pending: true,
+        settled: false,
+        offer_id: new ObjectId(offer?._id),
+        referral_id: e?.refferal_id,
+        click_id: e?.click_id,
+        user_id: new ObjectId(user?._id),
+      };
+
+      const order = await Orders.create(orderDetails);
+
+      user.lead_settlement.push({ ...data, order_id: order?._id });
+      await user.save();
+    }
+  }
 
   const result = await Lead.bulkWrite(bulkOperations);
 
   if (!result) {
     return res.send({ success: false, message: "Failed to update" });
   }
-  // const modifiedIds = result.result.map((res) => res._id);
 
   return res.send({
-    // message: `${result.modifiedCount} documents updated successfully`,
-    message: result,
+    message: `${
+      result.modifiedCount === 0
+        ? "No documents updated"
+        : result.modifiedCount + " " + "documents updated successfully"
+    } `,
     success: true,
   });
 };
 
-module.exports = { getAllLeads, CreateLead, getLeadsById, settleLeads };
+module.exports = { getAllLeads, createLead, getLeadsById, settleLeads };
