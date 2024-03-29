@@ -5,7 +5,8 @@ const {
   loginViaOtp,
   verifyOtp,
   logout,
-  tokenVerification,
+  accountDeletionRequest,
+  deleteUser,
 } = require("../controllers/auth");
 const verifyToken = require("../middleware/verifyToken");
 const verifyTokenWeb = require("../middleware/verifyTokenWeb");
@@ -17,5 +18,7 @@ router.post("/register", register);
 router.post("/login-via-otp", loginViaOtp);
 router.post("/verify-otp", verifyOtp);
 router.post("/logout", verifyToken, logout);
+router.post("/request-account-deletion", accountDeletionRequest);
+router.post("/delete-user", deleteUser);
 
 module.exports = router;

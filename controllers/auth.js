@@ -6,6 +6,9 @@ const User = require("../models/User");
 
 const WebUsers = require("../models/WebUsers");
 const { default: axios } = require("axios");
+const { sendEmail } = require("./notification");
+const { account_deletion } = require("../utils/template/account_deletion");
+const DeletedUser = require("../models/DeletedUser");
 
 const generateReferralCode = async (length) => {
   let result = "";
@@ -249,15 +252,60 @@ const logout = async (req, res) => {
   }
 };
 
-const tokenVerification = async (req, res) => {
-  // console.log(req.user, "gfd");
+const accountDeletionRequest = async (req, res) => {
+  const { phone, email } = req.body;
+
+  const user = await User.findOne({ phone, email });
+  if (!user) {
+    return res.status(StatusCodes.NOT_FOUND).json({
+      message: "User Doesn't exists",
+      success: true,
+    });
+  }
+
+  const URL = `${process.env.WEB_URL}/delete-account/${user?._id}`;
+
+  await sendEmail(
+    email,
+    "Account Deletion Confirmation",
+    account_deletion(user?.name, URL)
+  );
+
+  return res.status(StatusCodes.ACCEPTED).json({
+    message: `An email has been sent to ${email} for account deletion`,
+    success: true,
+  });
 };
 
+const deleteUser = async (req, res) => {
+  const id = req.body.id;
+
+  const user = await User.findById(id);
+  if (!user) {
+    return res.status(StatusCodes.NOT_FOUND).json({ message: `No user found` });
+  }
+
+  const archivedUser = new DeletedUser(user.toObject());
+  await archivedUser.save();
+
+  User.findByIdAndDelete(id)
+    .then((e) => {
+      // console.log(e, "d");
+      return res
+        .status(StatusCodes.GONE)
+        .json({ message: `User deleted successfully` });
+    })
+    .catch((err) => {
+      // console.log(err);
+      return res.status(StatusCodes.NOT_FOUND).json({ err });
+    });
+};
 module.exports = {
   register,
   login,
   loginViaOtp,
   verifyOtp,
   logout,
-  tokenVerification,
+  accountDeletionRequest,
+  deleteUser,
 };
