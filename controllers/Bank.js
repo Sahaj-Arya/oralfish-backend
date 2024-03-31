@@ -13,7 +13,7 @@ const createBank = async (req, res) => {
   let data = { ...rest };
 
   if (req?.file) {
-    let image = process.env.WEB_URL + "/image/" + req.file.filename;
+    let image = process.env.API_URL + "/image/" + req.file.filename;
     data["image"] = image;
   }
 

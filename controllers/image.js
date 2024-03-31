@@ -3,7 +3,7 @@ const app = express();
 const fs = require("fs");
 const path = require("path");
 
-const imageFolder = "../uploads";
+const imageFolder = "../rojgarData/images";
 
 const getSingleImage = async (req, res) => {
   const id = req.params.id;
