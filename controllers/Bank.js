@@ -1,3 +1,4 @@
+const { StatusCodes } = require("http-status-codes");
 const Bank = require("../models/Bank");
 const { ObjectId } = require("mongodb");
 
@@ -13,7 +14,7 @@ const createBank = async (req, res) => {
   let data = { ...rest };
 
   if (req?.file) {
-    let image = process.env.API_URL + "/image/" + req.file.filename;
+    let image = process.env.WEB_URL + "/image/" + req.file.filename;
     data["image"] = image;
   }
 
@@ -22,7 +23,9 @@ const createBank = async (req, res) => {
       console.log(err);
       res.send({ success: false, message: "Failed", err });
     } else {
-      return res.send({ data, message: "Data Fetched", success: true });
+      return res
+        .status(StatusCodes.CREATED)
+        .send({ data, message: "Bank Added Successfully", success: true });
     }
   });
 };
@@ -37,10 +40,10 @@ const getAllBanks = async (req, res) => {
 };
 
 const updateBank = async (req, res) => {
-  const { id, ...rest } = req.body;
+  let { id, bank_name, isActive } = req.body;
 
-  // console.log(req.body, req.file, "jj");
-  let data = { ...rest };
+  // console.log(req.body);
+  let data = { bank_name, isActive };
 
   if (req?.file) {
     let image = process.env.WEB_URL + "/image/" + req.file.filename;
@@ -58,4 +61,17 @@ const updateBank = async (req, res) => {
   });
 };
 
-module.exports = { getAllBanks, updateBank, createBank };
+const deleteBank = async (req, res) => {
+  const { id } = req.body;
+
+  await Bank.findByIdAndDelete(id, function (err, data) {
+    if (err) {
+      // console.log(err);
+      res.send({ success: false, message: "Unable to delete", err });
+    } else {
+      return res.send({ data, message: "Deleted Successfully", success: true });
+    }
+  });
+};
+
+module.exports = { getAllBanks, updateBank, createBank, deleteBank };

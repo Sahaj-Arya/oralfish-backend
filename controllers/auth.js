@@ -80,7 +80,7 @@ const login = async (req, res) => {
   const isValidPassword = await bcrypt.compare(password, user.password);
 
   if (!isValidPassword) {
-    return res.status(401).json({ message: "Invalid credentials" });
+    return res.status(401).json({ message: "Incorrect email or password" });
   }
 
   const token = jwt.sign(
@@ -95,6 +95,17 @@ const login = async (req, res) => {
   await user.save();
 
   res.status(StatusCodes.CREATED).json({ ...user._doc });
+};
+
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  const user = await WebUsers.findOne({ email });
+  if (!user) {
+    return res
+      .status(StatusCodes.NOT_FOUND)
+      .json({ message: `No User by email ${email}` });
+  }
 };
 
 //  To Login
@@ -113,7 +124,7 @@ const loginViaOtp = async (req, res) => {
   }
 
   const updateObj = { otp };
-
+  console.log(otp);
   if (fcm_token) {
     if (existingUser && !existingUser?.fcm_token?.includes(fcm_token)) {
       // updateObj["fcm_token"] = Array.from(
@@ -312,4 +323,5 @@ module.exports = {
   logout,
   accountDeletionRequest,
   deleteUser,
+  forgotPassword,
 };
