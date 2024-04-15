@@ -120,8 +120,17 @@ const getSelectedOffersWeb = async (req, res) => {
     // Other stages like $match for filtering, $project for selecting fields, etc.
   ];
 
-  if (req.body.id != "65d84d29c5f6515b756a3704") {
-    DATA.push({ $match: { type_id: id, status: true } });
+  if (req.body.id !== "6617742141652c98b6277bb8") {
+    if (req?.body?.status) {
+      DATA.push({ $match: { type_id: id, status: true } });
+    } else {
+      DATA.push({ $match: { type_id: id } });
+    }
+  } else {
+    if (req?.body?.status) {
+      DATA.push({ $match: { status: true } });
+    } else {
+    }
   }
   const offer_doc = await Offer.aggregate(DATA);
 
@@ -175,26 +184,27 @@ const getOfferWeb = async (req, res) => {
 };
 
 const createOffer = async (req, res) => {
-  let { desc, type_id, bank_id, ...rest } = req.body;
+  let { type_id, bank_id, offer_data, ...rest } = req.body;
 
   type_id = new ObjectId(type_id);
   bank_id = new ObjectId(bank_id);
 
-  if (desc?.features) {
-    desc.features = desc.features.split("\r\n"); // Modify desc.features to be an array
-  }
-  if (desc?.documents_required) {
-    desc.documents_required = desc.documents_required.split("\r\n");
-  }
-
-  if (req?.files?.length > 0) {
-    req?.files?.map((val, i) => {
-      let image = process.env.WEB_URL + "/image/" + val.filename;
-      rest.image = image;
-    });
-  }
-
-  const document = await Offer.create({ desc, ...rest, bank_id, type_id });
+  let arr = [];
+  offer_data?.forEach((item) => {
+    if (item.value?.includes("\n")) {
+      item.value = item?.value?.split("\n");
+      arr.push(item);
+      return;
+    }
+    arr.push(item);
+  });
+  console.log(arr);
+  const document = await Offer.create({
+    ...rest,
+    bank_id,
+    type_id,
+    offer_data: arr,
+  });
 
   if (!document) {
     return res.send({ success: false, message: "failed" });
@@ -203,33 +213,29 @@ const createOffer = async (req, res) => {
 };
 
 const updateOffer = async (req, res) => {
-  let { desc, id, bank_id, ...rest } = req.body;
-  let data = {};
+  let { id, bank_id = "", type_id = "", offer_data, ...rest } = req.body;
 
-  bank_id = new ObjectId(bank_id);
+  let arr = [];
 
-  if (desc?.features) {
-    desc.features = desc.features.split("\r\n");
-  }
-  if (desc?.documents_required) {
-    desc.documents_required = desc.documents_required.split("\r\n");
-  }
-
-  if (req?.files?.length > 0) {
-    req?.files?.map((val, i) => {
-      let image = process.env.WEB_URL + "/image/" + val.filename;
-      rest.image = image;
-    });
-  }
-
-  const document = await Offer.findOneAndUpdate(
-    { _id: id },
-    {
-      desc,
-      ...rest,
-      bank_id,
+  offer_data?.forEach((item) => {
+    if (item.value?.includes("\n")) {
+      item.value = item?.value?.split("\n");
+      arr.push(item);
+      return;
     }
-  );
+    arr.push(item);
+  });
+
+  let obj = { ...rest, offer_data: arr };
+
+  if (bank_id) {
+    obj.bank_id = new ObjectId(bank_id);
+  }
+  if (type_id) {
+    obj.type_id = new ObjectId(type_id);
+  }
+  // console.log(data);
+  const document = await Offer.findOneAndUpdate({ _id: id }, obj);
 
   if (!document) {
     return res.send({ success: false, message: "failed" });
@@ -239,23 +245,17 @@ const updateOffer = async (req, res) => {
 };
 
 const updateRank = async (req, res) => {
-  const { id, new_rank } = req.body;
+  const { id, rank } = req.body;
 
-  const result = await Offer.findById(id);
-
-  if (!result) {
+  const offer = await Offer.findByIdAndUpdate(id, { rank });
+  if (!offer) {
     return res
       .status(StatusCodes.NOT_FOUND)
-      .send({ success: false, message: "Document not found" });
+      .json({ message: "Offer does not exists", success: false });
   }
-
-  const currentRank = result.rank;
-  result.rank = new_rank;
-
-  await result.save();
   return res
-    .status(StatusCodes.CREATED)
-    .send({ success: true, message: "Updated successfully" });
+    .status(StatusCodes.ACCEPTED)
+    .json({ message: `Offer Rank Updated `, success: true, offer });
 
   // const update = await Offer.updateMany(
   //   { rank: { $gt: currentRank } },
@@ -307,6 +307,32 @@ const updateOfferStatus = async (req, res) => {
     .json({ message: `Offer Status Updated `, success: true, offer });
 };
 
+const deleteOffer = async (req, res) => {
+  const { id } = req.body;
+
+  const offer = await Offer.findById(id);
+
+  const deleted = await Offer.findByIdAndDelete(id);
+
+  if (!deleted) {
+    return res.send({
+      message: "Failed to Delete",
+      success: false,
+    });
+  }
+  await DeletedData.create({ type: "offer", data: offer })
+    .then((e) => {
+      // console.log(e);
+    })
+    .catch((err) => console.log(err));
+
+  return res.send({
+    data: deleted,
+    message: "Deleted Successfully",
+    success: true,
+  });
+};
+
 module.exports = {
   getAllOffers,
   createOffer,
@@ -317,4 +343,5 @@ module.exports = {
   updateOfferStatus,
   getAllOffersWeb,
   getSelectedOffersWeb,
+  deleteOffer,
 };

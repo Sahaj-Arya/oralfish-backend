@@ -13,11 +13,6 @@ const createBank = async (req, res) => {
 
   let data = { ...rest };
 
-  if (req?.file) {
-    let image = process.env.WEB_URL + "/image/" + req.file.filename;
-    data["image"] = image;
-  }
-
   Bank.create({ ...data }, function (err, data) {
     if (err) {
       console.log(err);
@@ -40,17 +35,13 @@ const getAllBanks = async (req, res) => {
 };
 
 const updateBank = async (req, res) => {
-  let { id, bank_name, isActive } = req.body;
+  let { id, bank_name, isActive, image } = req.body;
 
-  // console.log(req.body);
   let data = { bank_name, isActive };
-
-  if (req?.file) {
-    let image = process.env.WEB_URL + "/image/" + req.file.filename;
-    data["image"] = image;
+  if (image) {
+    data.image = image;
   }
-
-  // const objectId = new ObjectId(id);
+  // console.log(data, id);
   await Bank.findByIdAndUpdate(id, { ...data }, function (err, data) {
     if (err) {
       console.log(err);

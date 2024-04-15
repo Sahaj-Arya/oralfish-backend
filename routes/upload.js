@@ -3,7 +3,8 @@ const { single } = require("../controllers/upload");
 const { upload } = require("../utils/storageUtil");
 const router = express.Router();
 
-router.route("/single-image").post(upload.single("image"), single);
+router.route("/single-image").post(upload.single("image"), () => {});
+router.route("/upload-image").post(upload.single("image"), single);
 
 module.exports = router;
 

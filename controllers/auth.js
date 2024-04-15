@@ -116,11 +116,11 @@ const loginViaOtp = async (req, res) => {
   if (phone === "0000000000") {
     otp = "995588";
   } else {
-    // let data = `is ${otp}`;
-    // let msg = `Dear user, your mobile verification code ${data}. via-oralfish`;
-    // let URL = `http://164.52.195.161/API/SendMsg.aspx?uname=20240015&pass=59s993An&send=OFLOGN&dest=${phone}&msg=${msg}`;
-    // let providerOtp = axios.get(URL);
-    // providerOtp.then((e) => console.log(e)).catch((err) => console.log(err));
+    let data = `is ${otp}`;
+    let msg = `Dear user, your mobile verification code ${data}. via-oralfish`;
+    let URL = `http://164.52.195.161/API/SendMsg.aspx?uname=20240015&pass=59s993An&send=OFLOGN&dest=${phone}&msg=${msg}`;
+    let providerOtp = axios.get(URL);
+    providerOtp.then((e) => console.log(e)).catch((err) => console.log(err));
   }
 
   const updateObj = { otp };
@@ -230,8 +230,8 @@ const logout = async (req, res) => {
 
   // Assuming 'token' is an array of tokens in the user document and you want to remove the current token
 
-  const updatedToken = user.token.filter((e) => e !== token);
-
+  const updatedToken = user?.token?.filter((e) => e !== token);
+  console.log(updatedToken);
   try {
     // Update the user document by removing the token
     const updatedUser = await User.findOneAndUpdate(

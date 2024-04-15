@@ -1,5 +1,5 @@
-const {} = require("mongodb");
 const Category = require("../models/Category");
+const DeletedData = require("../models/DeletedData");
 
 const getAllCategory = async (req, res) => {
   const document = await Category.find({});
@@ -10,19 +10,26 @@ const getAllCategory = async (req, res) => {
   return res.send({ data: document, message: "Data Fetched", success: true });
 };
 
+const getCategoryById = async (req, res) => {
+  const id = req.params.id;
+  const document = await Category.findById(id);
+
+  if (!document) {
+    return res.send({ success: false, message: "Failed to get data" });
+  }
+  return res.send({ data: document, message: "Data Fetched", success: true });
+};
+
 const createCategory = async (req, res) => {
-  const { name, icon, iconType, type_id, size } = req.body;
+  const { name, ...rest } = req.body;
 
   const data = {
     name,
-    icon,
-    iconType,
-    type_id,
-    size,
+    ...rest,
   };
 
-  const newCategory = new Category(data);
-  const ifExists = await Category.findOne(data);
+  // const newCategory = new Category(data);
+  const ifExists = await Category.findOne({ name });
 
   if (ifExists) {
     return res.send({
@@ -30,7 +37,7 @@ const createCategory = async (req, res) => {
       success: false,
     });
   }
-  const result = await newCategory.save();
+  const result = await Category.create(data);
   if (!result) {
     return res.send({
       message: "Failed to create category",
@@ -47,7 +54,7 @@ const createCategory = async (req, res) => {
 const updateCategory = async (req, res) => {
   const { id, ...rest } = req.body;
 
-  console.log(id, rest.status);
+  // console.log(id, );
 
   const result = await Category.findOneAndUpdate(
     { _id: id },
@@ -55,7 +62,7 @@ const updateCategory = async (req, res) => {
       ...rest,
     }
   );
-  // console.log(result);
+
   if (!result) {
     return res.send({
       message: "Failed to Update",
@@ -69,4 +76,35 @@ const updateCategory = async (req, res) => {
   });
 };
 
-module.exports = { getAllCategory, createCategory, updateCategory };
+const deleteCategory = async (req, res) => {
+  const { id } = req.body;
+
+  const category = await Category.findById(id);
+
+  const deleted = await Category.findByIdAndDelete(id);
+
+  if (!deleted) {
+    return res.send({
+      message: "Failed to Delete",
+      success: false,
+    });
+  }
+  await DeletedData.create({ type: "category", data: category })
+    .then((e) => {
+      console.log(e);
+    })
+    .catch((err) => console.log(err));
+  return res.send({
+    data: deleted,
+    message: "Deleted Successfully",
+    success: true,
+  });
+};
+
+module.exports = {
+  getAllCategory,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  getCategoryById,
+};

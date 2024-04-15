@@ -1,7 +1,14 @@
 const Banner = require("../models/Banner");
 
 const getAllBanners = async (req, res) => {
-  const document = await Banner.find({});
+  let obj = {};
+  if (req?.body?.isActive) {
+    obj.isActive = true;
+  }
+
+  // console.log(req.body, "kkk");
+
+  const document = await Banner.find(obj);
 
   if (!document) {
     return res.send({ success: false, message: "failed" });
@@ -11,13 +18,6 @@ const getAllBanners = async (req, res) => {
 const addBanner = async (req, res) => {
   const { ...rest } = req.body;
   let data = { ...rest };
-
-  if (req?.file) {
-    let image = process.env.WEB_URL + "/image/" + req.file.filename;
-    data["image"] = image;
-  }
-
-  // console.log(data);
 
   if (!req.body) {
     return res.send({ success: false, message: "Data cannot be empty" });
@@ -32,10 +32,10 @@ const addBanner = async (req, res) => {
 };
 
 const deleteBanner = async (req, res) => {
-  if (!req.body) {
+  if (!req.body.id) {
     return res.send({ success: false, message: "Data cannot be empty" });
   }
-  const banner = await Banner.create({ ...req?.body });
+  const banner = await Banner.findByIdAndDelete(req.body.id);
   return res.send({
     data: banner,
     message: "Banner Created successfully",
