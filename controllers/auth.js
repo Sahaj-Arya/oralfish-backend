@@ -120,11 +120,11 @@ const loginViaOtp = async (req, res) => {
     let msg = `Dear user, your mobile verification code ${data}. via-oralfish`;
     let URL = `http://164.52.195.161/API/SendMsg.aspx?uname=20240015&pass=59s993An&send=OFLOGN&dest=${phone}&msg=${msg}`;
     let providerOtp = axios.get(URL);
-    providerOtp.then((e) => console.log(e)).catch((err) => console.log(err));
+    providerOtp.then((e) => {}).catch((err) => console.log(err));
   }
 
   const updateObj = { otp };
-  console.log(otp);
+  // console.log(otp);
   if (fcm_token) {
     if (existingUser && !existingUser?.fcm_token?.includes(fcm_token)) {
       // updateObj["fcm_token"] = Array.from(
@@ -231,7 +231,7 @@ const logout = async (req, res) => {
   // Assuming 'token' is an array of tokens in the user document and you want to remove the current token
 
   const updatedToken = user?.token?.filter((e) => e !== token);
-  console.log(updatedToken);
+  // console.log(updatedToken);
   try {
     // Update the user document by removing the token
     const updatedUser = await User.findOneAndUpdate(

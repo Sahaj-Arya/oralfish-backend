@@ -91,7 +91,7 @@ const deleteCategory = async (req, res) => {
   }
   await DeletedData.create({ type: "category", data: category })
     .then((e) => {
-      console.log(e);
+      // console.log(e);
     })
     .catch((err) => console.log(err));
   return res.send({

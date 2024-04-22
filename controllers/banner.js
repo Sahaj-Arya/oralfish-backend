@@ -15,6 +15,7 @@ const getAllBanners = async (req, res) => {
   }
   return res.send({ data: document, message: "Data Fetched", success: true });
 };
+
 const addBanner = async (req, res) => {
   const { ...rest } = req.body;
   let data = { ...rest };
@@ -56,7 +57,6 @@ const editBanner = async (req, res) => {
   }
 
   return res.send({
-    data: banner,
     message: "Banner updated successfully",
     success: true,
   });

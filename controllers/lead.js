@@ -11,20 +11,20 @@ const getAllLeads = async (req, res) => {
   const lead_doc = await Lead.aggregate([
     {
       $addFields: {
-        bank_id_obj: { $toObjectId: "$bank_id" },
+        // bank_id_obj: { $toObjectId: "$bank_id" },
         category_id_obj: { $toObjectId: "$category_id" },
         user_id_obj: { $toObjectId: "$user_id" },
         offer_id_obj: { $toObjectId: "$offer_id" },
       },
     },
-    {
-      $lookup: {
-        from: "banks",
-        localField: "bank_id_obj",
-        foreignField: "_id",
-        as: "bank_info",
-      },
-    },
+    // {
+    //   $lookup: {
+    //     from: "banks",
+    //     localField: "bank_id_obj",
+    //     foreignField: "_id",
+    //     as: "bank_info",
+    //   },
+    // },
     {
       $lookup: {
         from: "category",
@@ -51,18 +51,18 @@ const getAllLeads = async (req, res) => {
     },
     {
       $project: {
-        bank_id_obj: 0,
+        // bank_id_obj: 0,
         category_id_obj: 0,
         user_id_obj: 0,
         offer_id_obj: 0,
       },
     },
-    {
-      $unwind: {
-        path: "$bank_info",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
+    // {
+    //   $unwind: {
+    //     path: "$bank_info",
+    //     preserveNullAndEmptyArrays: true,
+    //   },
+    // },
     {
       $unwind: {
         path: "$category_info",
@@ -97,20 +97,20 @@ const getLeadsById = async (req, res) => {
   const lead_doc = await Lead.aggregate([
     {
       $addFields: {
-        bank_id_obj: { $toObjectId: "$bank_id" },
+        // bank_id_obj: { $toObjectId: "$bank_id" },
         category_id_obj: { $toObjectId: "$category_id" },
         user_id_obj: { $toObjectId: "$user_id" },
         offer_id_obj: { $toObjectId: "$offer_id" },
       },
     },
-    {
-      $lookup: {
-        from: "banks",
-        localField: "bank_id_obj",
-        foreignField: "_id",
-        as: "bank_info",
-      },
-    },
+    // {
+    //   $lookup: {
+    //     from: "banks",
+    //     localField: "bank_id_obj",
+    //     foreignField: "_id",
+    //     as: "bank_info",
+    //   },
+    // },
     {
       $lookup: {
         from: "category",
@@ -137,18 +137,18 @@ const getLeadsById = async (req, res) => {
     },
     {
       $project: {
-        bank_id_obj: 0,
+        // bank_id_obj: 0,
         category_id_obj: 0,
         user_id_obj: 0,
         offer_id_obj: 0,
       },
     },
-    {
-      $unwind: {
-        path: "$bank_info",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
+    // {
+    //   $unwind: {
+    //     path: "$bank_info",
+    //     preserveNullAndEmptyArrays: true,
+    //   },
+    // },
     {
       $unwind: {
         path: "$category_info",
@@ -200,63 +200,68 @@ const createLead = async (req, res) => {
 const settleLeads = async (req, res) => {
   // console.log(req.body.data, "exw");
   let updateData = req.body.data;
-  // return;
+
+  for (const e of updateData) {
+    const verifyOffer = await Lead.find({
+      click_id: e?.click_id,
+      affiliate_id: e?.refferal_id,
+    });
+
+    if (verifyOffer.length > 0) {
+      if (verifyOffer[0]?.offer_id !== e?.offer_id)
+        return res.send({ success: false, message: "Invalid offer selected" });
+    }
+
+    const offerID = new ObjectId(e?.offer_id);
+    let offers = await Offer.findOne({ _id: offerID });
+
+    if (!offers) {
+      break;
+    }
+
+    let user = await User.findOne({ referral_id: e?.refferal_id });
+
+    let orderDetails = {
+      amount: Number(offers?._doc?.mobile_data?.earning),
+      status: e?.status,
+      settled: false,
+      offer_id: offerID,
+      referral_id: e?.refferal_id,
+      click_id: e?.click_id,
+      created: Date.now(),
+      updated: Date.now(),
+      user_id: new ObjectId(user?._id),
+    };
+
+    const findOrder = await Orders.find({
+      click_id: e?.click_id,
+      referral_id: e?.refferal_id,
+      settled: true,
+    });
+
+    if (findOrder.length > 0) {
+      return;
+    }
+
+    const order = await Orders.create(orderDetails);
+
+    user.lead_settlement.push(order?._id);
+    await user.save();
+  }
+
   const bulkOperations = updateData.map((e) => {
     return {
       updateMany: {
         filter: {
           affiliate_id: e?.refferal_id,
           click_id: e?.click_id,
-          isComplete: false,
+          isComplete: "pending",
         },
-        update: { isComplete: e?.status },
+        update: { isComplete: e?.status, remarks: e?.remarks ?? "" },
         upsert: false,
       },
     };
   });
-
-  for (const e of updateData) {
-    if (e?.status === true) {
-      const offer = await Offer.findOne({ title: e?.offer_name });
-      if (!offer) {
-        break;
-      }
-
-      const data = {
-        amount: offer?.earning,
-        rejected: false,
-        pending: true,
-        settled: false,
-        created: Date.now(),
-        updated: Date.now(),
-        offer_id: new ObjectId(offer?._id),
-        referral_id: e?.refferal_id,
-        click_id: e?.click_id,
-      };
-
-      let user = await User.findOne({ referral_id: e?.refferal_id });
-
-      if (checkClickIdExists(user?.lead_settlement, e?.click_id)) {
-        break;
-      }
-      let orderDetails = {
-        amount: offer?.earning,
-        rejected: false,
-        pending: true,
-        settled: false,
-        offer_id: new ObjectId(offer?._id),
-        referral_id: e?.refferal_id,
-        click_id: e?.click_id,
-        user_id: new ObjectId(user?._id),
-      };
-
-      const order = await Orders.create(orderDetails);
-
-      user.lead_settlement.push({ ...data, order_id: order?._id });
-      await user.save();
-    }
-  }
-
   const result = await Lead.bulkWrite(bulkOperations);
 
   if (!result) {
@@ -267,10 +272,93 @@ const settleLeads = async (req, res) => {
     message: `${
       result.modifiedCount === 0
         ? "No documents updated"
-        : result.modifiedCount + " " + "documents updated successfully"
+        : result.modifiedCount + " " + "Documents updated successfully"
     } `,
     success: true,
+    result,
   });
 };
 
 module.exports = { getAllLeads, createLead, getLeadsById, settleLeads };
+
+// const settleLeads = async (req, res) => {
+
+//   // console.log(req.body.data, "exw");
+//   let updateData = req.body.data;
+//   // return;
+//   const bulkOperations = updateData.map((e) => {
+//     return {
+//       updateMany: {
+//         filter: {
+//           affiliate_id: e?.refferal_id,
+//           click_id: e?.click_id,
+//           approved: false,
+//         },
+//         update: { approved: e?.status, remarks: e?.remarks },
+//         upsert: false,
+//       },
+//     };
+//   });
+
+//   for (const e of updateData) {
+//     if (e?.status === true) {
+//       const offer = await Offer.findOne({ title: e?.offer_name });
+//       if (!offer) {
+//         break;
+//       }
+
+//       const data = {
+//         amount: offer?.earning,
+//         rejected: false,
+//         pending: true,
+//         approved: false,
+//         settled: false,
+//         created: Date.now(),
+//         updated: Date.now(),
+//         offer_id: new ObjectId(offer?._id),
+//         referral_id: e?.refferal_id,
+//         click_id: e?.click_id,
+//       };
+
+//       let user = await User.findOne({ referral_id: e?.refferal_id });
+
+//       if (checkClickIdExists(user?.lead_settlement, e?.click_id)) {
+//         break;
+//       }
+
+//       // refferal_id,click_id,offer_name,status
+
+//       let orderDetails = {
+//         amount: offer?.earning,
+//         rejected: false,
+//         pending: true,
+//         approved: false,
+//         settled: false,
+//         offer_id: new ObjectId(offer?._id),
+//         referral_id: e?.refferal_id,
+//         click_id: e?.click_id,
+//         user_id: new ObjectId(user?._id),
+//       };
+
+//       const order = await Orders.create(orderDetails);
+
+//       user.lead_settlement.push({ ...data, order_id: order?._id });
+//       await user.save();
+//     }
+//   }
+
+//   const result = await Lead.bulkWrite(bulkOperations);
+
+//   if (!result) {
+//     return res.send({ success: false, message: "Failed to update" });
+//   }
+
+//   return res.send({
+//     message: `${
+//       result.modifiedCount === 0
+//         ? "No documents updated"
+//         : result.modifiedCount + " " + "documents updated successfully"
+//     } `,
+//     success: true,
+//   });
+// };

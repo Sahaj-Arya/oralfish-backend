@@ -3,8 +3,7 @@ const mongoose = require("mongoose");
 const OrderSchema = new mongoose.Schema(
   {
     amount: { type: Number, required: true },
-    rejected: { type: Boolean, required: false },
-    pending: { type: Boolean, required: false },
+    status: { type: String, required: false },
     settled: { type: Boolean, required: false },
     offer_id: {
       type: mongoose.Schema.Types.ObjectId,

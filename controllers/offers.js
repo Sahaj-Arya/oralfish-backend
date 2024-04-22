@@ -10,14 +10,7 @@ const getAllOffers = async (req, res) => {
         status: true,
       },
     },
-    {
-      $lookup: {
-        from: "banks",
-        localField: "bank_id",
-        foreignField: "_id",
-        as: "bank_info",
-      },
-    },
+
     {
       $lookup: {
         from: "category",
@@ -26,12 +19,7 @@ const getAllOffers = async (req, res) => {
         as: "category_info",
       },
     },
-    {
-      $unwind: {
-        path: "$bank_info",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
+
     {
       $unwind: {
         path: "$category_info",
@@ -50,26 +38,13 @@ const getAllOffersWeb = async (req, res) => {
   const offer_doc = await Offer.aggregate([
     {
       $lookup: {
-        from: "banks",
-        localField: "bank_id",
-        foreignField: "_id",
-        as: "bank_info",
-      },
-    },
-    {
-      $lookup: {
         from: "category",
         localField: "type_id",
         foreignField: "_id",
         as: "category_info",
       },
     },
-    {
-      $unwind: {
-        path: "$bank_info",
-        preserveNullAndEmptyArrays: true, // Optional: Keeps documents that do not match the lookup
-      },
-    },
+
     {
       $unwind: {
         path: "$category_info",
@@ -89,14 +64,14 @@ const getSelectedOffersWeb = async (req, res) => {
   const id = ObjectId(req.body.id);
 
   const DATA = [
-    {
-      $lookup: {
-        from: "banks",
-        localField: "bank_id",
-        foreignField: "_id",
-        as: "bank_info",
-      },
-    },
+    // {
+    //   $lookup: {
+    //     from: "banks",
+    //     localField: "bank_id",
+    //     foreignField: "_id",
+    //     as: "bank_info",
+    //   },
+    // },
     {
       $lookup: {
         from: "category",
@@ -105,12 +80,12 @@ const getSelectedOffersWeb = async (req, res) => {
         as: "category_info",
       },
     },
-    {
-      $unwind: {
-        path: "$bank_info",
-        preserveNullAndEmptyArrays: true, // Optional: Keeps documents that do not match the lookup
-      },
-    },
+    // {
+    //   $unwind: {
+    //     path: "$bank_info",
+    //     preserveNullAndEmptyArrays: true, // Optional: Keeps documents that do not match the lookup
+    //   },
+    // },
     {
       $unwind: {
         path: "$category_info",
@@ -147,14 +122,14 @@ const getOfferWeb = async (req, res) => {
     {
       $match: { _id: id }, // Filter by ID
     },
-    {
-      $lookup: {
-        from: "banks", // The collection to join with
-        localField: "bank_id", // ObjectId field in the 'offer' collection
-        foreignField: "_id", // ObjectId _id field in the 'bank' collection
-        as: "bank_info", // Output array field for joined bank documents
-      },
-    },
+    // {
+    //   $lookup: {
+    //     from: "banks", // The collection to join with
+        // localField: "bank_id", // ObjectId field in the 'offer' collection
+    //     foreignField: "_id", // ObjectId _id field in the 'bank' collection
+    //     as: "bank_info", // Output array field for joined bank documents
+    //   },
+    // },
     {
       $lookup: {
         from: "category", // The collection to join with
@@ -163,12 +138,12 @@ const getOfferWeb = async (req, res) => {
         as: "category_info", // Output array field for joined category documents
       },
     },
-    {
-      $unwind: {
-        path: "$bank_info",
-        preserveNullAndEmptyArrays: true, // Optional: Keeps documents that do not match the lookup
-      },
-    },
+    // {
+    //   $unwind: {
+    //     path: "$bank_info",
+    //     preserveNullAndEmptyArrays: true, // Optional: Keeps documents that do not match the lookup
+    //   },
+    // },
     {
       $unwind: {
         path: "$category_info",
@@ -184,10 +159,9 @@ const getOfferWeb = async (req, res) => {
 };
 
 const createOffer = async (req, res) => {
-  let { type_id, bank_id, offer_data, ...rest } = req.body;
+  let { type_id, offer_data, ...rest } = req.body;
 
   type_id = new ObjectId(type_id);
-  bank_id = new ObjectId(bank_id);
 
   let arr = [];
   offer_data?.forEach((item) => {
@@ -198,10 +172,9 @@ const createOffer = async (req, res) => {
     }
     arr.push(item);
   });
-  console.log(arr);
+  // console.log(arr);
   const document = await Offer.create({
     ...rest,
-    bank_id,
     type_id,
     offer_data: arr,
   });
@@ -213,7 +186,7 @@ const createOffer = async (req, res) => {
 };
 
 const updateOffer = async (req, res) => {
-  let { id, bank_id = "", type_id = "", offer_data, ...rest } = req.body;
+  let { id, type_id = "", offer_data, ...rest } = req.body;
 
   let arr = [];
 
@@ -228,9 +201,6 @@ const updateOffer = async (req, res) => {
 
   let obj = { ...rest, offer_data: arr };
 
-  if (bank_id) {
-    obj.bank_id = new ObjectId(bank_id);
-  }
   if (type_id) {
     obj.type_id = new ObjectId(type_id);
   }
