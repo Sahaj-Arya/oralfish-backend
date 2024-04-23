@@ -2,7 +2,11 @@ const Category = require("../models/Category");
 const DeletedData = require("../models/DeletedData");
 
 const getAllCategory = async (req, res) => {
-  const document = await Category.find({});
+  let obj = {};
+  if (req?.body?.params) {
+    obj = params;
+  }
+  const document = await Category.find(obj);
 
   if (!document) {
     return res.send({ success: false, message: "failed" });
