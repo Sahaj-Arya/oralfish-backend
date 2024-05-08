@@ -247,6 +247,53 @@ const setDefaultBank = async (req, res) => {
   }
 };
 
+const ApproveProfile = async (req, res) => {
+  const { id, value } = req.body;
+
+  let isProfileVerified = false;
+  if (value === "approved") {
+    isProfileVerified = true;
+  }
+  try {
+    const user = await User.findByIdAndUpdate(id, { isProfileVerified });
+    if (!user) {
+      return res.send({
+        status: "error",
+        errors: [
+          {
+            message: "Invalid user",
+            code: StatusCodes.NOT_FOUND,
+          },
+        ],
+        message: "Operation failed",
+      });
+    }
+    if (!isProfileVerified) {
+      return res.send({
+        status: "success",
+        message: user?.name + " rejected",
+        data: user,
+      });
+    }
+    return res.send({
+      status: "success",
+      message: user?.name + " approved successfully",
+      data: user,
+    });
+  } catch (error) {
+    return res.send({
+      status: "error",
+      errors: [
+        {
+          message: "User not found",
+          code: StatusCodes.NOT_FOUND,
+        },
+      ],
+      message: "Operation failed",
+    });
+  }
+};
+
 module.exports = {
   updateBank,
   getProfile,
@@ -254,4 +301,5 @@ module.exports = {
   getProfileWeb,
   getAllProfiles,
   setDefaultBank,
+  ApproveProfile,
 };

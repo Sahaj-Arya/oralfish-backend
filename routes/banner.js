@@ -10,7 +10,7 @@ const { upload } = require("../utils/storageUtil");
 
 const router = express.Router();
 
-router.route("/get-all-banners").post(getAllBanners);
+router.route("/get-all-banners").post(getAllBanners).get(getAllBanners);
 router.route("/add-banner").post(addBanner);
 router.route("/edit-banner").post(editBanner);
 router.route("/delete-banner").post(deleteBanner);

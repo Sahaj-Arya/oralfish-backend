@@ -25,6 +25,7 @@ const UserSchema = new mongoose.Schema({
   occupation: { type: String, default: "" },
   work_experience: { type: String, default: "" },
   referral_id: { type: String, default: "" },
+  wallet: { type: String, default: "0" },
   bank_details: [
     {
       bank_name: String,
@@ -35,20 +36,7 @@ const UserSchema = new mongoose.Schema({
       default: Boolean,
     },
   ],
-  lead_settlement: [
-    {
-      amount: Number,
-      rejected: Boolean,
-      pending: Boolean,
-      settled: Boolean,
-      created: String,
-      updated: String,
-      offer_id: { type: mongoose.Schema.Types.ObjectId, required: false },
-      order_id: { type: mongoose.Schema.Types.ObjectId, required: false },
-      referral_id: String,
-      click_id: String,
-    },
-  ],
+  order_settlement: [],
 });
 
 UserSchema.index({ phone: 1 }, { unique: true });

@@ -5,6 +5,7 @@ const nodemailer = require("nodemailer");
 const { StatusCodes } = require("http-status-codes");
 const { settlement } = require("../utils/template/settlement");
 const User = require("../models/User");
+const { getAllFCMTokens } = require("../utils/helperFunctions");
 
 const serviceAccount = {
   type: "service_account",
@@ -136,7 +137,63 @@ const multiNotification = async (req, res) => {
       });
       arr.push(token);
     } catch (error) {
-      console.error("Error sending message:", error.errorInfo.message);
+      // console.error("Error sending message:", error.errorInfo.message);
+    }
+  });
+
+  return res
+    .status(200)
+    .json({ success: true, message: "Notification sent successfully" });
+};
+
+const bulkNotification = async (req, res) => {
+  const { title, body, image } = req.body;
+  console.log(req.body);
+
+  let tokens = await getAllFCMTokens();
+
+  if (tokens.length < 1 || !title || !body) {
+    return res.status(400).json({ error: "Invalid request parameters" });
+  }
+  // console.log(req.body);
+  let message = {
+    notification: {
+      title,
+      body,
+    },
+    android: {
+      notification: {
+        imageUrl: image,
+      },
+    },
+    apns: {
+      payload: {
+        aps: {
+          "mutable-content": 1,
+        },
+      },
+      fcm_options: {
+        image: image,
+      },
+    },
+    // webpush: {
+    //   headers: {
+    //     image: image,
+    //   },
+    // },
+  };
+
+  let arr = [];
+
+  tokens.forEach(async (token) => {
+    try {
+      await admin.messaging().send({
+        ...message,
+        token: token,
+      });
+      arr.push(token);
+    } catch (error) {
+      // console.error("Error sending message:", error.errorInfo.message);
     }
   });
 
@@ -147,7 +204,6 @@ const multiNotification = async (req, res) => {
 
 const sendNotificationToAll = async (req, res) => {
   const { title, body, image = "", route = "", route_id = "" } = req.body;
-
   if (!title || !body) {
     return res.status(400).json({ error: "Invalid request parameters" });
   }
@@ -175,7 +231,7 @@ const sendNotificationToAll = async (req, res) => {
     // webpush: {
     //   headers: {
     //     image: image,
-    //   },
+    //   },1
     // },
   };
 
@@ -287,4 +343,5 @@ module.exports = {
   sendEmail,
   sendNotificationToAll,
   sendMultiEmail,
+  bulkNotification,
 };

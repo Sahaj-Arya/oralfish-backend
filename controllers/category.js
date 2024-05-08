@@ -4,7 +4,7 @@ const DeletedData = require("../models/DeletedData");
 const getAllCategory = async (req, res) => {
   let obj = {};
   if (req?.body?.params) {
-    obj = params;
+    obj = { ...req?.body?.params };
   }
   const document = await Category.find(obj);
 

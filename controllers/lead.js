@@ -6,7 +6,7 @@ const { ObjectId } = require("mongodb");
 const { checkClickIdExists } = require("../utils/specialFunctions");
 
 const getAllLeads = async (req, res) => {
-  let limit = 10;
+  let limit = 100;
 
   const lead_doc = await Lead.aggregate([
     {
@@ -90,7 +90,12 @@ const getAllLeads = async (req, res) => {
   if (!lead_doc) {
     return res.send({ success: false, message: "failed" });
   }
-  return res.send({ data: lead_doc, message: "Data Fetched", success: true });
+  return res.send({
+    data: lead_doc,
+    message: "Data Fetched",
+    success: true,
+    total: lead_doc?.length,
+  });
 };
 
 const getLeadsById = async (req, res) => {
@@ -198,17 +203,20 @@ const createLead = async (req, res) => {
 };
 
 const settleLeads = async (req, res) => {
-  // console.log(req.body.data, "exw");
   let updateData = req.body.data;
-
+  let data = { length: 0, orders: [] };
   for (const e of updateData) {
-    const verifyOffer = await Lead.find({
+    const verifyOffer = await Lead.findOne({
       click_id: e?.click_id,
       affiliate_id: e?.refferal_id,
     });
 
-    if (verifyOffer.length > 0) {
-      if (verifyOffer[0]?.offer_id !== e?.offer_id)
+    if (verifyOffer) {
+      verifyOffer.isComplete = e?.status;
+      verifyOffer.remarks = e?.remarks ?? "";
+
+      await verifyOffer.save();
+      if (verifyOffer?.offer_id !== e?.offer_id)
         return res.send({ success: false, message: "Invalid offer selected" });
     }
 
@@ -233,53 +241,73 @@ const settleLeads = async (req, res) => {
       user_id: new ObjectId(user?._id),
     };
 
-    const findOrder = await Orders.find({
+    const findOrder = await Orders.findOne({
       click_id: e?.click_id,
       referral_id: e?.refferal_id,
-      settled: true,
+      // settled: true,
     });
 
-    if (findOrder.length > 0) {
-      return;
+    if (e?.status === "approved" && !findOrder) {
+      let order = await Orders.create(orderDetails);
+      data.orders.push(order);
+      data.length++;
+
+      user.order_settlement = [...user?.order_settlement, order?._id];
+      await user.save();
     }
-
-    const order = await Orders.create(orderDetails);
-
-    user.lead_settlement.push(order?._id);
-    await user.save();
   }
-
-  const bulkOperations = updateData.map((e) => {
-    return {
-      updateMany: {
-        filter: {
-          affiliate_id: e?.refferal_id,
-          click_id: e?.click_id,
-          isComplete: "pending",
-        },
-        update: { isComplete: e?.status, remarks: e?.remarks ?? "" },
-        upsert: false,
-      },
-    };
-  });
-  const result = await Lead.bulkWrite(bulkOperations);
-
-  if (!result) {
-    return res.send({ success: false, message: "Failed to update" });
+  if (data.length === 0) {
+    return res.send({
+      message: "No order created",
+      success: true,
+    });
   }
-
   return res.send({
-    message: `${
-      result.modifiedCount === 0
-        ? "No documents updated"
-        : result.modifiedCount + " " + "Documents updated successfully"
-    } `,
+    message: `${data?.length} orders created succesfully`,
     success: true,
-    result,
   });
 };
 
-module.exports = { getAllLeads, createLead, getLeadsById, settleLeads };
+const getSelectedLeads = async (req, res) => {
+  try {
+    const { ids } = req.body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res
+        .status(400)
+        .send({ success: false, message: "Invalid or empty array of IDs" });
+    }
+
+    const objectIds = ids.map((item) => item?._id);
+
+    const result = await Lead.find({ _id: { $in: objectIds } });
+
+    if (!result || result.length === 0) {
+      return res
+        .status(200)
+        .send({ success: false, message: "No leads found" });
+    }
+
+    return res.send({
+      success: true,
+      message: "Leads fetched successfully",
+      data: result,
+    });
+  } catch (error) {
+    console.error("Error fetching leads:", error);
+    return res
+      .status(500)
+      .send({ success: false, message: "Internal server error" });
+  }
+};
+
+module.exports = {
+  getAllLeads,
+  createLead,
+  getLeadsById,
+  settleLeads,
+  getSelectedLeads,
+};
 
 // const settleLeads = async (req, res) => {
 

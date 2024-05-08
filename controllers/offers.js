@@ -2,6 +2,7 @@ const { ObjectId } = require("mongodb");
 const { StatusCodes } = require("http-status-codes");
 
 const Offer = require("../models/Offer");
+const DeletedData = require("../models/DeletedData");
 
 const getAllOffers = async (req, res) => {
   const offer_doc = await Offer.aggregate([
@@ -10,7 +11,6 @@ const getAllOffers = async (req, res) => {
         status: true,
       },
     },
-
     {
       $lookup: {
         from: "category",
@@ -61,75 +61,64 @@ const getAllOffersWeb = async (req, res) => {
 };
 
 const getSelectedOffersWeb = async (req, res) => {
-  const id = ObjectId(req.body.id);
+  try {
+    const id = new ObjectId(req.body.id);
 
-  const DATA = [
-    // {
-    //   $lookup: {
-    //     from: "banks",
-    //     localField: "bank_id",
-    //     foreignField: "_id",
-    //     as: "bank_info",
-    //   },
-    // },
-    {
-      $lookup: {
-        from: "category",
-        localField: "type_id",
-        foreignField: "_id",
-        as: "category_info",
+    const DATA = [
+      {
+        $lookup: {
+          from: "category",
+          localField: "type_id",
+          foreignField: "_id",
+          as: "category_info",
+        },
       },
-    },
-    // {
-    //   $unwind: {
-    //     path: "$bank_info",
-    //     preserveNullAndEmptyArrays: true, // Optional: Keeps documents that do not match the lookup
-    //   },
-    // },
-    {
-      $unwind: {
-        path: "$category_info",
-        preserveNullAndEmptyArrays: true, // Optional: Keeps documents that do not match the lookup
+      {
+        $unwind: {
+          path: "$category_info",
+          preserveNullAndEmptyArrays: true,
+        },
       },
-    },
-    // Other stages like $match for filtering, $project for selecting fields, etc.
-  ];
+    ];
 
-  if (req.body.id !== "6617742141652c98b6277bb8") {
-    if (req?.body?.status) {
-      DATA.push({ $match: { type_id: id, status: true } });
+    if (req.body.id !== "6617742141652c98b6277bb8") {
+      if (req.body.status) {
+        DATA.push({ $match: { type_id: id, status: true } });
+      } else {
+        DATA.push({ $match: { type_id: id } });
+      }
     } else {
-      DATA.push({ $match: { type_id: id } });
+      if (req.body.status) {
+        DATA.push({ $match: { status: true } });
+      }
     }
-  } else {
-    if (req?.body?.status) {
-      DATA.push({ $match: { status: true } });
-    } else {
-    }
-  }
-  const offer_doc = await Offer.aggregate(DATA);
 
-  if (!offer_doc) {
-    return res.send({ success: false, message: "failed" });
+    const offer_doc = await Offer.aggregate(DATA);
+
+    if (!offer_doc) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Data not found" });
+    }
+
+    return res
+      .status(200)
+      .json({ data: offer_doc, message: "Data Fetched", success: true });
+  } catch (error) {
+    console.error("Error in fetching offers:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error" });
   }
-  return res.send({ data: offer_doc, message: "Data Fetched", success: true });
 };
 
 const getOfferWeb = async (req, res) => {
-  const id = ObjectId(req.body.id);
+  const id = new ObjectId(req.body.id);
 
   const offer = await Offer.aggregate([
     {
       $match: { _id: id }, // Filter by ID
     },
-    // {
-    //   $lookup: {
-    //     from: "banks", // The collection to join with
-        // localField: "bank_id", // ObjectId field in the 'offer' collection
-    //     foreignField: "_id", // ObjectId _id field in the 'bank' collection
-    //     as: "bank_info", // Output array field for joined bank documents
-    //   },
-    // },
     {
       $lookup: {
         from: "category", // The collection to join with
@@ -138,20 +127,14 @@ const getOfferWeb = async (req, res) => {
         as: "category_info", // Output array field for joined category documents
       },
     },
-    // {
-    //   $unwind: {
-    //     path: "$bank_info",
-    //     preserveNullAndEmptyArrays: true, // Optional: Keeps documents that do not match the lookup
-    //   },
-    // },
     {
       $unwind: {
         path: "$category_info",
         preserveNullAndEmptyArrays: true, // Optional: Keeps documents that do not match the lookup
       },
     },
-    // Other stages like $project for selecting fields, etc.
   ]);
+  console.log(offer);
   if (!offer) {
     return res.send({ success: false, message: "failed" });
   }
@@ -280,24 +263,20 @@ const updateOfferStatus = async (req, res) => {
 const deleteOffer = async (req, res) => {
   const { id } = req.body;
 
-  const offer = await Offer.findById(id);
-
   const deleted = await Offer.findByIdAndDelete(id);
 
-  if (!deleted) {
+  if (!deleted?._doc?._id) {
     return res.send({
       message: "Failed to Delete",
       success: false,
     });
   }
-  await DeletedData.create({ type: "offer", data: offer })
-    .then((e) => {
-      // console.log(e);
-    })
+
+  await DeletedData.create({ type: "offer", data: deleted?._doc })
+    .then((e) => {})
     .catch((err) => console.log(err));
 
   return res.send({
-    data: deleted,
     message: "Deleted Successfully",
     success: true,
   });

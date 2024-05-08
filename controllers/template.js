@@ -57,7 +57,7 @@ const updateTemplate = async (req, res) => {
   }
 
   return res.status(StatusCodes.CREATED).json({
-    message: "Termplate created successfully",
+    message: "Termplate updated successfully",
     data: template,
     success: true,
   });
@@ -83,4 +83,9 @@ const deleteTemplate = async (req, res) => {
   });
 };
 
-module.exports = { getAllTemplates, createTemplate, updateTemplate,deleteTemplate };
+module.exports = {
+  getAllTemplates,
+  createTemplate,
+  updateTemplate,
+  deleteTemplate,
+};

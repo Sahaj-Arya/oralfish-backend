@@ -10,6 +10,7 @@ const LeadSchema = new mongoose.Schema(
     apply_link: { type: String, default: "" },
     status: { type: String, default: "" },
     isComplete: { type: String, default: "" },
+    remarks: { type: String, default: "" },
     name: { type: String, required: true },
     email: { type: String, required: true },
     phone: { type: String, required: true },
