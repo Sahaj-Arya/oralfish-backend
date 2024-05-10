@@ -336,6 +336,60 @@ async function sendMultiEmail(req, res) {
   }
 }
 
+const sendbulkNotification = async (tokens, title, body, image) => {
+  if (tokens.length < 1 || !title || !body) {
+    return res.status(400).json({ error: "Invalid request parameters" });
+  }
+  // console.log(req.body);
+  let message = {
+    notification: {
+      title,
+      body,
+    },
+
+    apns: {
+      payload: {
+        aps: {
+          "mutable-content": 1,
+        },
+      },
+      fcm_options: {
+        image: image,
+      },
+    },
+    // webpush: {
+    //   headers: {
+    //     image: image,
+    //   },
+    // },
+  };
+
+  if (image) {
+    message.android = {
+      notification: {
+        imageUrl: image,
+      },
+    };
+  }
+
+  let arr = [];
+
+  tokens.forEach(async (token) => {
+    try {
+      await admin.messaging().send({
+        ...message,
+        token: token,
+      });
+      arr.push(token);
+    } catch (error) {
+      console.error("Error sending message:", error.errorInfo.message);
+    }
+  });
+  // // console.log(arr);
+  // return res
+  //   .status(200)
+  //   .json({ success: true, message: "Notification sent successfully" });
+};
 module.exports = {
   singleNotification,
   multiNotification,
@@ -344,4 +398,5 @@ module.exports = {
   sendNotificationToAll,
   sendMultiEmail,
   bulkNotification,
+  sendbulkNotification,
 };

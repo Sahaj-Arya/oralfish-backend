@@ -239,6 +239,7 @@ const settleLeads = async (req, res) => {
       created: Date.now(),
       updated: Date.now(),
       user_id: new ObjectId(user?._id),
+      lead_id: new ObjectId(verifyOffer?._id),
     };
 
     const findOrder = await Orders.findOne({

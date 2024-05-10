@@ -10,15 +10,7 @@ async function sendEmail(
 ) {
   try {
     // Create a transporter object using the default SMTP transport
-    const transporter = nodemailer.createTransport({
-      host: "mail.rojgarapp.in", // SMTP server hostname
-      port: 465, // TCP port to connect to
-      secure: true, // true for 465, false for other ports; deprecated, should be false for port 587
-      auth: {
-        user: "support@rojgarapp.in", // SMTP username
-        pass: "Foodfoodfood1@", // SMTP password
-      },
-    });
+    const transporter = nodemailer.createTransport(emailAuth);
 
     // Setup email data
     const mailOptions = {
@@ -38,4 +30,13 @@ async function sendEmail(
   }
 }
 
-module.exports = { sendEmail };
+const emailAuth = {
+  host: "mail.rojgarapp.in", // SMTP server hostname
+  port: 465, // TCP port to connect to
+  secure: true, // true for 465, false for other ports; deprecated, should be false for port 587
+  auth: {
+    user: "support@rojgarapp.in", // SMTP username
+    pass: "Foodfoodfood1@", // SMTP password
+  },
+};
+module.exports = { sendEmail, emailAuth };

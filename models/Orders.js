@@ -10,8 +10,10 @@ const OrderSchema = new mongoose.Schema(
       required: true,
     },
     referral_id: { type: String, required: true },
+    pdf: { type: String, value: "" },
     click_id: { type: String, required: true },
     user_id: { type: mongoose.Schema.Types.ObjectId, required: true },
+    lead_id: { type: mongoose.Schema.Types.ObjectId, required: true },
   },
   {
     timestamps: {

@@ -35,6 +35,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/image", express.static("../rojgarData/images"));
+app.use("/pdf", express.static("../rojgarData/pdfs"));
 
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/profile", profileRouter);
