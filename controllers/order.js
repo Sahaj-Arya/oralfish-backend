@@ -75,7 +75,7 @@ const approveOrders = async (req, res) => {
   try {
     const { ids } = req.body;
     let isUser = false;
-    let user;
+    // let user;
     let order_settlement;
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
@@ -93,11 +93,11 @@ const approveOrders = async (req, res) => {
       // get user bank details and
       // pay using razorpay payment
 
-      if (!isUser) {
-        user = await User.findOne({ _id: new ObjectId(item?.user_id) });
-        order_settlement = user?.order_settlement;
-        isUser = true;
-      }
+      // if (!isUser) {
+      let user = await User.findOne({ _id: new ObjectId(item?.user_id) });
+      order_settlement = user?.order_settlement;
+      isUser = true;
+      // }
       const offer = await Offer.findOne({ _id: new ObjectId(item?.offer_id) });
 
       await Lead.findByIdAndUpdate(
@@ -105,7 +105,7 @@ const approveOrders = async (req, res) => {
           _id: new ObjectId(item?.lead_id),
         },
         {
-          // status: "settled",
+          status: "settled",
         }
       );
 
@@ -136,20 +136,12 @@ const approveOrders = async (req, res) => {
         invoice_nr: item?._id,
       };
 
-      if (order_settlement.length > 0) {
-        let arr = order_settlement.filter(
-          (element) => element?.toString() !== item?._id.toString()
-        );
-        user.order_settlement = arr;
-
-        let title = `${item?.mobile_data?.title} Order Payment Complete`;
-        let message = `Hurray your we're pleased to inform you that your final payment for the order ${item?._id} has been completed!`;
-        await sendbulkNotification(user.fcm_token, title, message);
-        await user.save();
-      }
+      let title = `${item?.mobile_data?.title} Order Payment Complete`;
+      let message = `Hurray your we're pleased to inform you that your final payment for the order ${item?._id} has been completed!`;
+      await sendbulkNotification(user.fcm_token, title, message);
 
       let pdf = await generateInvoice(invoice, `${item?._id}.pdf`);
-      console.log("Invoice generated successfully!", pdf);
+      // console.log("Invoice generated successfully!", pdf);
 
       await Orders.findOneAndUpdate(
         {
@@ -157,9 +149,17 @@ const approveOrders = async (req, res) => {
         },
         {
           pdf,
-          // settled: true,
+          settled: true,
         }
       );
+      if (user?.order_settlement?.length > 0) {
+        let filteredArray = user?.order_settlement?.filter(
+          (toFilter) => !toFilter?.includes(item?._id)
+        );
+        user.order_settlement = filteredArray;
+        user.wallet = (Number(user?.wallet) + Number(item?.amount))?.toString();
+        await user.save();
+      }
     });
 
     if (!orders) {

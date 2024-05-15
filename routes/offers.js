@@ -11,6 +11,8 @@ const {
   getAllOffersWeb,
   getSelectedOffersWeb,
   deleteOffer,
+  updateIfFeatured,
+  getFeatured,
 } = require("../controllers/offers");
 const { upload } = require("../utils/storageUtil");
 
@@ -26,5 +28,7 @@ router.route("/update-offer-rank").post(updateRank);
 router.route("/get-offer-web").post(getOfferWeb);
 router.route("/get-offer-by-id").post(getOfferById);
 router.route("/delete-offer").post(deleteOffer);
+router.route("/update-featured").post(updateIfFeatured);
+router.route("/get-featured").get(getFeatured);
 
 module.exports = router;

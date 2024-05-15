@@ -134,7 +134,6 @@ const getOfferWeb = async (req, res) => {
       },
     },
   ]);
-  console.log(offer);
   if (!offer) {
     return res.send({ success: false, message: "failed" });
   }
@@ -209,22 +208,6 @@ const updateRank = async (req, res) => {
   return res
     .status(StatusCodes.ACCEPTED)
     .json({ message: `Offer Rank Updated `, success: true, offer });
-
-  // const update = await Offer.updateMany(
-  //   { rank: { $gt: currentRank } },
-  //   { $inc: { rank: 1 } }
-  // );
-  // if (update) {
-  //   return res
-  //     .status(StatusCodes.CREATED)
-  //     .send({ success: true, message: "Updated successfully", update });
-  // }
-  // } catch (error) {
-  //   console.error("Error updating rank:", error);
-  //   return res
-  //     .status(StatusCodes.INTERNAL_SERVER_ERROR)
-  //     .send({ success: false, message: "Failed to update rank" });
-  // }
 };
 
 const getOfferById = async (req, res) => {
@@ -259,6 +242,24 @@ const updateOfferStatus = async (req, res) => {
     .status(StatusCodes.ACCEPTED)
     .json({ message: `Offer Status Updated `, success: true, offer });
 };
+const updateIfFeatured = async (req, res) => {
+  const { id, featured } = req.body;
+
+  const offer = await Offer.findByIdAndUpdate(id, { featured });
+  if (!offer) {
+    return res
+      .status(StatusCodes.NOT_FOUND)
+      .json({ message: "Offer does not exists", success: false });
+  }
+  if (featured) {
+    return res
+      .status(StatusCodes.ACCEPTED)
+      .json({ message: `Offer Featured `, success: true, offer });
+  }
+  return res
+    .status(StatusCodes.ACCEPTED)
+    .json({ message: `Offer not featured `, success: true, offer });
+};
 
 const deleteOffer = async (req, res) => {
   const { id } = req.body;
@@ -282,6 +283,31 @@ const deleteOffer = async (req, res) => {
   });
 };
 
+const getFeatured = async (req, res) => {
+  const offer = await Offer.aggregate([
+    {
+      $match: { featured: true },
+    },
+    {
+      $lookup: {
+        from: "category", // The collection to join with
+        localField: "type_id", // ObjectId field in the 'offer' collection
+        foreignField: "_id", // ObjectId _id field in the 'category' collection
+        as: "category_info", // Output array field for joined category documents
+      },
+    },
+    {
+      $unwind: {
+        path: "$category_info",
+        preserveNullAndEmptyArrays: true, // Optional: Keeps documents that do not match the lookup
+      },
+    },
+  ]);
+  if (!offer) {
+    return res.send({ success: false, message: "failed" });
+  }
+  return res.send({ data: offer, message: "Data Fetched", success: true });
+};
 module.exports = {
   getAllOffers,
   createOffer,
@@ -293,4 +319,6 @@ module.exports = {
   getAllOffersWeb,
   getSelectedOffersWeb,
   deleteOffer,
+  updateIfFeatured,
+  getFeatured,
 };
