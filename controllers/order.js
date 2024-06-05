@@ -9,13 +9,49 @@ const { sendbulkNotification } = require("./notification");
 const getOrderByUid = async (req, res) => {
   const { user_id } = req.body;
   const uid = new ObjectId(user_id);
-  const result = await Orders.find({ user_id: uid });
+  const result = await Orders.aggregate([
+    {
+      $match: {
+        user_id: uid,
+      },
+    },
+    {
+      $lookup: {
+        from: "offers",
+        localField: "offer_id",
+        foreignField: "_id",
+        as: "category_info",
+      },
+    },
+    {
+      $lookup: {
+        from: "leads",
+        localField: "lead_id",
+        foreignField: "_id",
+        as: "lead_info",
+      },
+    },
+
+    {
+      $unwind: {
+        path: "$category_info",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $unwind: {
+        path: "$lead_info",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+  ]);
+
   //   console.log(result);
 
   if (!result) {
     return res.send({ success: false, message: "failed" });
   }
-  return res.send({ success: true, message: "Successfull", result });
+  return res.send({ success: true, message: "Successful", result });
 };
 
 const getSelectedOrders = async (req, res) => {
@@ -72,11 +108,13 @@ const getSelectedOrders = async (req, res) => {
 };
 
 const approveOrders = async (req, res) => {
+  console.log(req.body);
   try {
     const { ids } = req.body;
     let isUser = false;
-    // let user;
-    let order_settlement;
+    let user;
+    let order_settlement = [];
+    let wallet;
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return res
@@ -88,16 +126,18 @@ const approveOrders = async (req, res) => {
 
     const orders = await Orders.find({ _id: { $in: objectIds } });
 
-    orders.forEach(async (item) => {
+    orders.forEach(async (item, index) => {
       // get user
       // get user bank details and
       // pay using razorpay payment
 
-      // if (!isUser) {
-      let user = await User.findOne({ _id: new ObjectId(item?.user_id) });
-      order_settlement = user?.order_settlement;
-      isUser = true;
-      // }
+      if (!isUser) {
+        user = await User.findOne({ _id: new ObjectId(item?.user_id) });
+        user = user;
+        order_settlement = Array.from(user?.order_settlement);
+        wallet = user?.wallet;
+        isUser = true;
+      }
       const offer = await Offer.findOne({ _id: new ObjectId(item?.offer_id) });
 
       await Lead.findByIdAndUpdate(
@@ -105,7 +145,7 @@ const approveOrders = async (req, res) => {
           _id: new ObjectId(item?.lead_id),
         },
         {
-          status: "settled",
+          // status: "settled",
         }
       );
 
@@ -136,7 +176,7 @@ const approveOrders = async (req, res) => {
         invoice_nr: item?._id,
       };
 
-      let title = `${item?.mobile_data?.title} Order Payment Complete`;
+      let title = `${offer?._doc?.mobile_data.title} Order Payment Complete`;
       let message = `Hurray your we're pleased to inform you that your final payment for the order ${item?._id} has been completed!`;
       await sendbulkNotification(user.fcm_token, title, message);
 
@@ -148,17 +188,24 @@ const approveOrders = async (req, res) => {
           _id: new ObjectId(item?._id),
         },
         {
-          pdf,
-          settled: true,
+          // pdf,
+          // settled: true,
         }
       );
-      if (user?.order_settlement?.length > 0) {
-        let filteredArray = user?.order_settlement?.filter(
-          (toFilter) => !toFilter?.includes(item?._id)
-        );
+
+      let filteredArray;
+      if (order_settlement?.length > 0) {
+        filteredArray = order_settlement?.filter((toFilter) => {
+          return toFilter?.toString() !== item?._id?.toString();
+        });
+        order_settlement = filteredArray;
+      }
+      wallet = +wallet + +item?.amount;
+
+      if (filteredArray?.length === 0) {
         user.order_settlement = filteredArray;
-        user.wallet = (Number(user?.wallet) + Number(item?.amount))?.toString();
-        await user.save();
+        user.wallet = wallet;
+        // await user.save();
       }
     });
 

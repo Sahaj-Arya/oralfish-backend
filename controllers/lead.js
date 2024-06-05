@@ -265,6 +265,7 @@ const settleLeads = async (req, res) => {
   }
   return res.send({
     message: `${data?.length} orders created succesfully`,
+    color: "green",
     success: true,
   });
 };

@@ -15,7 +15,7 @@ const verifyToken = (req, res, next) => {
     const checkUser = await User.findOne({ phone: user?.phone });
 
     if (!checkUser) {
-      return res.status(401).json({ message: "Invalid Token" });
+      return res.status(401).json({ message: "Invalid token" });
     }
 
     if (checkUser?.token?.length < 1) {
