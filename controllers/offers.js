@@ -5,33 +5,93 @@ const Offer = require("../models/Offer");
 const DeletedData = require("../models/DeletedData");
 
 const getAllOffers = async (req, res) => {
-  const offer_doc = await Offer.aggregate([
-    {
-      $match: {
-        status: true,
-      },
-    },
-    {
-      $lookup: {
-        from: "category",
-        localField: "type_id",
-        foreignField: "_id",
-        as: "category_info",
-      },
-    },
+  try {
+    const {
+      limit = 10,
+      page = 1,
+      sortField = "date",
+      sortOrder = "asc",
+      search = "",
+    } = req.query;
 
-    {
-      $unwind: {
-        path: "$category_info",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-  ]);
+    const sortOrderValue = sortOrder === "asc" ? 1 : -1;
 
-  if (!offer_doc) {
-    return res.send({ success: false, message: "failed" });
+    const limitValue = parseInt(limit, 10);
+    const skipValue = (parseInt(page, 10) - 1) * limitValue;
+
+    // Define the sort object dynamically
+    let sortOptions = {};
+    if (sortField === "date") {
+      sortOptions = { $sort: { created: sortOrderValue } };
+    } else if (sortField === "price") {
+      sortOptions = {
+        $sort: { "mobile_data.earning_numeric": sortOrderValue },
+      };
+    }
+
+    const pipeline = [
+      {
+        $match: {
+          status: true,
+          ...(search && {
+            "mobile_data.title": { $regex: search, $options: "i" },
+          }),
+        },
+      },
+      {
+        $lookup: {
+          from: "category",
+          localField: "type_id",
+          foreignField: "_id",
+          as: "category_info",
+        },
+      },
+      {
+        $addFields: {
+          "mobile_data.earning_numeric": { $toInt: "$mobile_data.earning" },
+        },
+      },
+      sortOptions,
+      {
+        $skip: skipValue,
+      },
+      {
+        $limit: limitValue,
+      },
+    ];
+
+    const offer_doc = await Offer.aggregate(pipeline);
+
+    // Get the total count of matching documents
+    const totalDocuments = await Offer.countDocuments({
+      status: true,
+      ...(search && { "mobile_data.title": { $regex: search, $options: "i" } }),
+    });
+    const totalPages = Math.ceil(totalDocuments / limitValue);
+
+    if (!offer_doc || offer_doc.length === 0) {
+      return res
+        .status(404)
+        .send({ success: false, message: "No offers found" });
+    }
+
+    const nextPage =
+      parseInt(page, 10) < totalPages ? parseInt(page, 10) + 1 : null;
+
+    return res.status(200).send({
+      data: offer_doc,
+      message: "Data Fetched",
+      success: true,
+      pagination: {
+        totalDocuments,
+        totalPages,
+        currentPage: parseInt(page, 10),
+        nextPage,
+      },
+    });
+  } catch (err) {
+    return res.status(500).send({ success: false, message: err.message });
   }
-  return res.send({ data: offer_doc, message: "Data Fetched", success: true });
 };
 
 const getAllOffersWeb = async (req, res) => {
@@ -212,21 +272,114 @@ const updateRank = async (req, res) => {
 
 const getOfferById = async (req, res) => {
   const { id } = req.body;
-  if (!id) {
-    return res
-      .status(StatusCodes.NOT_FOUND)
-      .json({ message: "Id cannot be empty", success: false });
-  }
+  try {
+    const {
+      limit = 10,
+      page = 1,
+      sortField = "date",
+      sortOrder = "asc",
+      search = "",
+      status = true,
+    } = req.query;
 
-  const result = await Offer.findById(id);
-  if (!result) {
-    return res
-      .status(StatusCodes.NOT_FOUND)
-      .json({ message: `No Data Found by &{id}`, success: false });
+    const sortOrderValue = sortOrder === "asc" ? 1 : -1;
+
+    const limitValue = parseInt(limit, 10);
+    const skipValue = (parseInt(page, 10) - 1) * limitValue;
+
+    let sortOptions = {};
+    if (sortField === "date") {
+      sortOptions = { created: sortOrderValue };
+    } else if (sortField === "price") {
+      sortOptions = { "mobile_data.earning_numeric": sortOrderValue };
+    }
+
+    const matchConditions = [];
+    if (status) {
+      matchConditions.push({ status: status === "true" });
+    }
+    if (search) {
+      matchConditions.push({
+        "mobile_data.title": { $regex: search, $options: "i" },
+      });
+    }
+    if (id) {
+      matchConditions.push({ type_id: new ObjectId(id) });
+    }
+
+    const pipeline = [
+      {
+        $match: {
+          ...(matchConditions.length > 0 ? { $and: matchConditions } : {}),
+        },
+      },
+      {
+        $lookup: {
+          from: "category",
+          localField: "type_id",
+          foreignField: "_id",
+          as: "category_info",
+        },
+      },
+      {
+        $addFields: {
+          "mobile_data.earning_numeric": {
+            $convert: {
+              input: "$mobile_data.earning",
+              to: "int",
+              onError: 0,
+              onNull: 0,
+            },
+          },
+        },
+      },
+      {
+        $sort: sortOptions,
+      },
+      {
+        $skip: skipValue,
+      },
+      {
+        $limit: limitValue,
+      },
+      {
+        $unwind: {
+          path: "$category_info",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+    ];
+
+    const offer_doc = await Offer.aggregate(pipeline);
+
+    const totalDocuments = await Offer.countDocuments({
+      ...(matchConditions.length > 0 ? { $and: matchConditions } : {}),
+    });
+    const totalPages = Math.ceil(totalDocuments / limitValue);
+
+    if (!offer_doc || offer_doc.length === 0) {
+      return res
+        .status(200)
+        .send({ success: false, message: "No offers found" });
+    }
+
+    const nextPage =
+      parseInt(page, 10) <= totalPages ? parseInt(page, 10) + 1 : null;
+
+    return res.status(200).send({
+      data: offer_doc,
+      message: "Data Fetched",
+      success: true,
+      pagination: {
+        totalDocuments,
+        totalPages,
+        currentPage: parseInt(page, 10),
+        nextPage,
+      },
+    });
+  } catch (err) {
+    return res.status(500).send({ success: false, message: err.message });
   }
-  return res
-    .status(StatusCodes.ACCEPTED)
-    .json({ message: `Data found`, success: true, data: result });
 };
 
 const updateOfferStatus = async (req, res) => {
@@ -242,6 +395,7 @@ const updateOfferStatus = async (req, res) => {
     .status(StatusCodes.ACCEPTED)
     .json({ message: `Offer Status Updated `, success: true, offer });
 };
+
 const updateIfFeatured = async (req, res) => {
   const { id, featured } = req.body;
 
@@ -308,6 +462,7 @@ const getFeatured = async (req, res) => {
   }
   return res.send({ data: offer, message: "Data Fetched", success: true });
 };
+
 module.exports = {
   getAllOffers,
   createOffer,

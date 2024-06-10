@@ -99,94 +99,141 @@ const getAllLeads = async (req, res) => {
 };
 
 const getLeadsById = async (req, res) => {
-  const lead_doc = await Lead.aggregate([
-    {
-      $addFields: {
-        // bank_id_obj: { $toObjectId: "$bank_id" },
-        category_id_obj: { $toObjectId: "$category_id" },
-        user_id_obj: { $toObjectId: "$user_id" },
-        offer_id_obj: { $toObjectId: "$offer_id" },
-      },
-    },
-    // {
-    //   $lookup: {
-    //     from: "banks",
-    //     localField: "bank_id_obj",
-    //     foreignField: "_id",
-    //     as: "bank_info",
-    //   },
-    // },
-    {
-      $lookup: {
-        from: "category",
-        localField: "category_id_obj",
-        foreignField: "_id",
-        as: "category_info",
-      },
-    },
-    {
-      $lookup: {
-        from: "users",
-        localField: "user_id_obj",
-        foreignField: "_id",
-        as: "user_info",
-      },
-    },
-    {
-      $lookup: {
-        from: "offers",
-        localField: "offer_id_obj",
-        foreignField: "_id",
-        as: "offer_info",
-      },
-    },
-    {
-      $project: {
-        // bank_id_obj: 0,
-        category_id_obj: 0,
-        user_id_obj: 0,
-        offer_id_obj: 0,
-      },
-    },
-    // {
-    //   $unwind: {
-    //     path: "$bank_info",
-    //     preserveNullAndEmptyArrays: true,
-    //   },
-    // },
-    {
-      $unwind: {
-        path: "$category_info",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-    {
-      $unwind: {
-        path: "$user_info",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-    {
-      $unwind: {
-        path: "$offer_info",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-    {
-      $match: {
-        user_id: req.body.user_id,
-      },
-    },
+  const { user_id } = req.body;
 
-    // You can add additional stages here as needed.
-  ]);
+  try {
+    const {
+      limit = 10,
+      page = 1,
+      sortField = "date",
+      sortOrder = "asc",
+      search = "",
+    } = req.query;
 
-  // const lead_doc = await Lead.find({ user_id: req.body.user_id });
+    const sortOrderValue = sortOrder === "asc" ? 1 : -1;
+    const limitValue = parseInt(limit, 10);
+    const skipValue = (parseInt(page, 10) - 1) * limitValue;
 
-  if (!lead_doc) {
-    return res.send({ success: false, message: "failed" });
+    let sortOptions = {};
+    if (sortField === "date") {
+      sortOptions = { created: sortOrderValue };
+    }
+
+    const matchConditions = [];
+    if (search) {
+      matchConditions.push({
+        $or: [
+          { name: { $regex: search, $options: "i" } },
+          { email: { $regex: search, $options: "i" } },
+          { phone: { $regex: search, $options: "i" } },
+        ],
+      });
+    }
+    if (user_id) {
+      matchConditions.push({ user_id });
+    }
+
+    const pipeline = [
+      {
+        $match: matchConditions.length > 0 ? { $and: matchConditions } : {},
+      },
+      {
+        $addFields: {
+          category_id_obj: { $toObjectId: "$category_id" },
+          user_id_obj: { $toObjectId: "$user_id" },
+          offer_id_obj: { $toObjectId: "$offer_id" },
+        },
+      },
+      {
+        $lookup: {
+          from: "category",
+          localField: "category_id_obj",
+          foreignField: "_id",
+          as: "category_info",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "user_id_obj",
+          foreignField: "_id",
+          as: "user_info",
+        },
+      },
+      {
+        $lookup: {
+          from: "offers",
+          localField: "offer_id_obj",
+          foreignField: "_id",
+          as: "offer_info",
+        },
+      },
+      {
+        $project: {
+          category_id_obj: 0,
+          user_id_obj: 0,
+          offer_id_obj: 0,
+        },
+      },
+      {
+        $unwind: {
+          path: "$category_info",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: "$user_info",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: "$offer_info",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $sort: sortOptions,
+      },
+      {
+        $skip: skipValue,
+      },
+      {
+        $limit: limitValue,
+      },
+    ];
+
+    const lead_doc = await Lead.aggregate(pipeline);
+
+    const totalDocuments = await Lead.countDocuments(
+      matchConditions.length > 0 ? { $and: matchConditions } : {}
+    );
+    const totalPages = Math.ceil(totalDocuments / limitValue);
+
+    if (!lead_doc || lead_doc.length === 0) {
+      return res
+        .status(200)
+        .send({ success: false, message: "No Leads found" });
+    }
+
+    const nextPage =
+      parseInt(page, 10) < totalPages ? parseInt(page, 10) + 1 : null;
+
+    return res.send({
+      data: lead_doc,
+      message: "Data Fetched",
+      success: true,
+      pagination: {
+        totalDocuments,
+        totalPages,
+        currentPage: parseInt(page, 10),
+        nextPage,
+      },
+    });
+  } catch (err) {
+    return res.status(500).send({ success: false, message: err.message });
   }
-  return res.send({ data: lead_doc, message: "Data Fetched", success: true });
 };
 
 const createLead = async (req, res) => {

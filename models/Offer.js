@@ -140,4 +140,11 @@ const offerSchema = new mongoose.Schema({}, { strict: false });
 //   },
 // });
 
+offerSchema.pre("save", function (next) {
+  if (!this.created) {
+    this.created = new Date().toISOString(); // Set the current date as string
+  }
+  next();
+});
+
 module.exports = mongoose.model("Offers", offerSchema, "offers");
