@@ -8,50 +8,119 @@ const { sendbulkNotification } = require("./notification");
 
 const getOrderByUid = async (req, res) => {
   const { user_id } = req.body;
-  const uid = new ObjectId(user_id);
-  const result = await Orders.aggregate([
-    {
-      $match: {
-        user_id: uid,
-      },
-    },
-    {
-      $lookup: {
-        from: "offers",
-        localField: "offer_id",
-        foreignField: "_id",
-        as: "category_info",
-      },
-    },
-    {
-      $lookup: {
-        from: "leads",
-        localField: "lead_id",
-        foreignField: "_id",
-        as: "lead_info",
-      },
-    },
 
-    {
-      $unwind: {
-        path: "$category_info",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-    {
-      $unwind: {
-        path: "$lead_info",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-  ]);
+  try {
+    const {
+      limit = 10,
+      page = 1,
+      sortField = "date",
+      sortOrder = "asc",
+      search = "",
+    } = req.query;
 
-  //   console.log(result);
+    const sortOrderValue = sortOrder === "asc" ? 1 : -1;
+    const limitValue = parseInt(limit, 10);
+    const skipValue = (parseInt(page, 10) - 1) * limitValue;
 
-  if (!result) {
-    return res.send({ success: false, message: "failed" });
+    let sortOptions = {};
+    if (sortField === "date") {
+      sortOptions = { created: sortOrderValue };
+    }
+
+    const matchConditions = [];
+    if (search) {
+      matchConditions.push({
+        $or: [
+          { "lead_info.name": { $regex: search, $options: "i" } },
+          { "lead_info.email": { $regex: search, $options: "i" } },
+          { "lead_info.phone": { $regex: search, $options: "i" } },
+          { "offer_info.mobile_data.title": { $regex: search, $options: "i" } },
+        ],
+      });
+    }
+    if (user_id) {
+      matchConditions.push({ user_id: new ObjectId(user_id) });
+    }
+
+    const pipeline = [
+      {
+        $lookup: {
+          from: "offers",
+          localField: "offer_id",
+          foreignField: "_id",
+          as: "offer_info",
+        },
+      },
+      {
+        $lookup: {
+          from: "leads",
+          localField: "lead_id",
+          foreignField: "_id",
+          as: "lead_info",
+        },
+      },
+      {
+        $match: matchConditions.length > 0 ? { $and: matchConditions } : {},
+      },
+      {
+        $project: {
+          "offer_info._id": 0,
+          "lead_info._id": 0,
+        },
+      },
+      {
+        $unwind: {
+          path: "$offer_info",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: "$lead_info",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $sort: sortOptions,
+      },
+      {
+        $skip: skipValue,
+      },
+      {
+        $limit: limitValue,
+      },
+    ];
+
+    const orderDocs = await Orders.aggregate(pipeline);
+
+    const totalDocuments = await Orders.countDocuments(
+      matchConditions.length > 0 ? { $and: matchConditions } : {}
+    );
+    const totalPages = Math.ceil(totalDocuments / limitValue);
+
+    if (!orderDocs || orderDocs.length === 0) {
+      return res
+        .status(200)
+        .send({ success: false, message: "No Orders found" });
+    }
+
+    const nextPage =
+      parseInt(page, 10) < totalPages ? parseInt(page, 10) + 1 : null;
+
+    return res.send({
+      data: orderDocs,
+      message: "Data Fetched",
+      success: true,
+      pagination: {
+        totalDocuments,
+        totalPages,
+        currentPage: parseInt(page, 10),
+        nextPage,
+      },
+    });
+  } catch (err) {
+    return res.status(500).send({ success: false, message: err.message });
   }
-  return res.send({ success: true, message: "Successful", result });
 };
 
 const getSelectedOrders = async (req, res) => {
