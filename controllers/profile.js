@@ -76,8 +76,8 @@ const getProfileWeb = async (req, res) => {
 const updateProfile = async (req, res) => {
   let data = {};
 
-  const { account_no, bank_ifsc, bank_name } = req.body;
-  let obj = { account_no, bank_ifsc, bank_name };
+  const { account_no, bank_ifsc, bank_name, pan_no, pan_no_new } = req.body;
+  let obj = { account_no, bank_ifsc, bank_name, pan_no, pan_no_new };
 
   let step_done = req.body.stepsDone;
 
@@ -95,11 +95,15 @@ const updateProfile = async (req, res) => {
           obj["cancelled_check"] = image;
         } else if (i === 1) {
           obj["bank_passbook"] = image;
+        } else if (i === 2) {
+          obj["pan_image_new"] = image;
         }
       }
     });
   }
-
+  console.log("====================================");
+  console.log(obj);
+  console.log("====================================");
   if (step_done == 4) {
     const user = await User.findOne({ phone: req.body.phone });
     let bank_details = [...user?.bank_details, obj];
@@ -128,88 +132,54 @@ const updateProfile = async (req, res) => {
 };
 
 const updateBank = async (req, res) => {
-  const {
-    account_no,
-    bank_ifsc,
-    bank_name,
-    bank_id,
-    id,
-    cancelled_check = null,
-    bank_passbook = null,
-    remove = false,
-  } = req.body;
+  try {
+    const { id, _id, remove, ...rest } = req.body;
 
-  let obj = { account_no, bank_ifsc, bank_name };
-  if (req?.files?.length > 0) {
-    req?.files?.map((val, i) => {
-      let image = process.env.WEB_URL + "/image/" + val.filename;
-      if (i === 0) {
-        obj["cancelled_check"] = image;
-      } else if (i === 1) {
-        obj["bank_passbook"] = image;
-      }
-    });
-  }
-
-  if (!id) {
-    return res.status(404).send("Invalid data no id");
-  }
-
-  const user = await User.findById(id);
-  if (!user) {
-    return res.status(404).json({ message: "User not found" });
-  }
-
-  let d = [];
-  let f = [];
-  await user?.bank_details?.forEach((e) => {
-    let objVal = e;
-    if (e._id?.toString() == bank_id?.toString()) {
-      if (remove) {
-      } else {
-        if (account_no) {
-          objVal.account_no = account_no;
-        }
-        if (bank_ifsc) {
-          objVal.bank_ifsc = bank_ifsc;
-        }
-        if (bank_name) {
-          objVal.bank_name = bank_name;
-        }
-        {
-          if (cancelled_check) {
-            objVal.cancelled_check = cancelled_check;
-          } else if (obj?.cancelled_check) {
-            objVal.cancelled_check = obj?.cancelled_check;
-          }
-        }
-        {
-          if (bank_passbook) {
-            objVal.bank_passbook = bank_passbook;
-          } else if (obj?.bank_passbook) {
-            objVal.bank_passbook = obj?.bank_passbook;
-          }
-        }
-        d.push(objVal);
-      }
-    } else {
-      f.push(e);
+    if (!id) {
+      return res.status(400).send("Invalid data: no id");
     }
-  });
 
-  // console.log(d, "d", f, "f");
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-  if (d[0]?._id) {
-    user.bank_details = [...d, ...f];
-  } else {
-    user.bank_details = [obj, ...f];
+    let added_bank = {};
+    let bank_arr = [];
+
+    if (!_id) {
+      added_bank = { ...rest };
+      user.bank_details.push(added_bank);
+    } else if (remove && _id) {
+      user.bank_details = user.bank_details.filter(
+        (item) => item._id.toString() !== _id.toString()
+      );
+    } else if (_id) {
+      user.bank_details = user.bank_details.map((bank) => {
+        if (bank._id.toString() === _id) {
+          return {
+            cancelled_cheque: rest.cancelled_cheque || bank.cancelled_cheque,
+            pan_image_new: rest.pan_image_new || bank.pan_image_new,
+            beneficiary_name: rest.beneficiary_name || bank.beneficiary_name,
+            account_no: rest.account_no || bank.account_no,
+            bank_ifsc: rest.bank_ifsc || bank.bank_ifsc,
+            bank_name: rest.bank_name || bank.bank_name,
+            pan_no_new: rest.pan_no_new || bank.pan_no_new,
+          };
+        }
+        return bank;
+      });
+    }
+    user.isProfileVerified = false;
+
+    await user.save();
+    return res
+      .status(200)
+      .json({ message: "Bank detail updated successfully", user });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
   }
-  // console.log("b", user.bank_details);
-
-  await user.save();
-  res
-    .status(StatusCodes.CREATED)
-    .json({ message: "Bank detail added successfully", user });
 };
 
 const setDefaultBank = async (req, res) => {
@@ -294,6 +264,43 @@ const ApproveProfile = async (req, res) => {
   }
 };
 
+const RedeemWallet = async (req, res) => {
+  const { id } = req.body;
+  console.log(id);
+  try {
+    const user = await User.findByIdAndUpdate(id, { redeem_wallet: true });
+    if (!user) {
+      return res.send({
+        status: "error",
+        errors: [
+          {
+            message: "Invalid user",
+            code: StatusCodes.NOT_FOUND,
+          },
+        ],
+        message: "Operation failed",
+      });
+    }
+
+    return res.send({
+      status: "success",
+      message: "Redeem Request Sent",
+      // data: user,
+    });
+  } catch (error) {
+    return res.send({
+      status: "error",
+      errors: [
+        {
+          message: "User Not Found",
+          code: StatusCodes.NOT_FOUND,
+        },
+      ],
+      message: "Operation failed",
+    });
+  }
+};
+
 module.exports = {
   updateBank,
   getProfile,
@@ -302,4 +309,5 @@ module.exports = {
   getAllProfiles,
   setDefaultBank,
   ApproveProfile,
+  RedeemWallet,
 };

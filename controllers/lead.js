@@ -126,6 +126,7 @@ const getLeadsById = async (req, res) => {
           { name: { $regex: search, $options: "i" } },
           { email: { $regex: search, $options: "i" } },
           { phone: { $regex: search, $options: "i" } },
+          { "offer_info.mobile_data.title": { $regex: search, $options: "i" } },
         ],
       });
     }
@@ -167,6 +168,9 @@ const getLeadsById = async (req, res) => {
           foreignField: "_id",
           as: "offer_info",
         },
+      },
+      {
+        $match: matchConditions.length > 0 ? { $and: matchConditions } : {},
       },
       {
         $project: {
@@ -251,18 +255,19 @@ const createLead = async (req, res) => {
 
 const settleLeads = async (req, res) => {
   let updateData = req.body.data;
+  // console.log(updateData);
   let data = { length: 0, orders: [] };
   for (const e of updateData) {
-    const verifyOffer = await Lead.findOne({
+    let verifyOfferdoc = await Lead.findOne({
       click_id: e?.click_id,
       affiliate_id: e?.refferal_id,
     });
-
+    let verifyOffer = verifyOfferdoc?._doc;
     if (verifyOffer) {
-      verifyOffer.isComplete = e?.status;
-      verifyOffer.remarks = e?.remarks ?? "";
+      verifyOfferdoc.isComplete = e?.status;
+      verifyOfferdoc.remarks = e?.remarks ?? "";
 
-      await verifyOffer.save();
+      await verifyOfferdoc.save();
       if (verifyOffer?.offer_id !== e?.offer_id)
         return res.send({ success: false, message: "Invalid offer selected" });
     }
@@ -270,7 +275,7 @@ const settleLeads = async (req, res) => {
     const offerID = new ObjectId(e?.offer_id);
     let offers = await Offer.findOne({ _id: offerID });
 
-    if (!offers) {
+    if (!offers?._doc?._id) {
       break;
     }
 
@@ -292,10 +297,11 @@ const settleLeads = async (req, res) => {
     const findOrder = await Orders.findOne({
       click_id: e?.click_id,
       referral_id: e?.refferal_id,
-      // settled: true,
+      // settled: false,
     });
+    console.log(findOrder?._doc?._id, "findOrder?._doc?._id");
 
-    if (e?.status === "approved" && !findOrder) {
+    if (e?.status === "approved" && !findOrder?._doc?._id) {
       let order = await Orders.create(orderDetails);
       data.orders.push(order);
       data.length++;

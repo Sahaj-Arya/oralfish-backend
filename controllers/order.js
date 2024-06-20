@@ -177,7 +177,7 @@ const getSelectedOrders = async (req, res) => {
 };
 
 const approveOrders = async (req, res) => {
-  console.log(req.body);
+  // console.log(req.body);
   try {
     const { ids } = req.body;
     let isUser = false;
@@ -214,7 +214,7 @@ const approveOrders = async (req, res) => {
           _id: new ObjectId(item?.lead_id),
         },
         {
-          // status: "settled",
+          status: "settled",
         }
       );
 
@@ -250,15 +250,15 @@ const approveOrders = async (req, res) => {
       await sendbulkNotification(user.fcm_token, title, message);
 
       let pdf = await generateInvoice(invoice, `${item?._id}.pdf`);
-      // console.log("Invoice generated successfully!", pdf);
+      console.log("Invoice generated successfully!", pdf);
 
       await Orders.findOneAndUpdate(
         {
           _id: new ObjectId(item?._id),
         },
         {
-          // pdf,
-          // settled: true,
+          pdf,
+          settled: true,
         }
       );
 
@@ -274,7 +274,7 @@ const approveOrders = async (req, res) => {
       if (filteredArray?.length === 0) {
         user.order_settlement = filteredArray;
         user.wallet = wallet;
-        // await user.save();
+        await user.save();
       }
     });
 
