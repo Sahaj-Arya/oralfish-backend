@@ -13,6 +13,8 @@ const {
   deleteOffer,
   updateIfFeatured,
   getFeatured,
+  getTopConverting,
+  getBestPayout,
 } = require("../controllers/offers");
 const { upload } = require("../utils/storageUtil");
 
@@ -30,5 +32,7 @@ router.route("/get-offer-by-id").post(getOfferById);
 router.route("/delete-offer").post(deleteOffer);
 router.route("/update-featured").post(updateIfFeatured);
 router.route("/get-featured").get(getFeatured);
+router.route("/get-top-converting").get(getTopConverting);
+router.route("/get-best-payout").get(getBestPayout);
 
 module.exports = router;

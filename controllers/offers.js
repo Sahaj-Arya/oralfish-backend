@@ -462,7 +462,56 @@ const getFeatured = async (req, res) => {
   }
   return res.send({ data: offer, message: "Data Fetched", success: true });
 };
-
+const getTopConverting = async (req, res) => {
+  const offer = await Offer.aggregate([
+    {
+      $match: { featured: true },
+    },
+    {
+      $lookup: {
+        from: "category", // The collection to join with
+        localField: "type_id", // ObjectId field in the 'offer' collection
+        foreignField: "_id", // ObjectId _id field in the 'category' collection
+        as: "category_info", // Output array field for joined category documents
+      },
+    },
+    {
+      $unwind: {
+        path: "$category_info",
+        preserveNullAndEmptyArrays: true, // Optional: Keeps documents that do not match the lookup
+      },
+    },
+  ]);
+  if (!offer) {
+    return res.send({ success: false, message: "failed" });
+  }
+  return res.send({ data: offer, message: "Data Fetched", success: true });
+};
+const getBestPayout = async (req, res) => {
+  const offer = await Offer.aggregate([
+    {
+      $match: { featured: true },
+    },
+    {
+      $lookup: {
+        from: "category", // The collection to join with
+        localField: "type_id", // ObjectId field in the 'offer' collection
+        foreignField: "_id", // ObjectId _id field in the 'category' collection
+        as: "category_info", // Output array field for joined category documents
+      },
+    },
+    {
+      $unwind: {
+        path: "$category_info",
+        preserveNullAndEmptyArrays: true, // Optional: Keeps documents that do not match the lookup
+      },
+    },
+  ]);
+  if (!offer) {
+    return res.send({ success: false, message: "failed" });
+  }
+  return res.send({ data: offer, message: "Data Fetched", success: true });
+};
 module.exports = {
   getAllOffers,
   createOffer,
@@ -476,4 +525,6 @@ module.exports = {
   deleteOffer,
   updateIfFeatured,
   getFeatured,
+  getTopConverting,
+  getBestPayout,
 };
