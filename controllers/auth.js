@@ -119,8 +119,8 @@ const loginViaOtp = async (req, res) => {
     let data = `is ${otp}`;
     let msg = `Dear user, your mobile verification code ${data}. via-oralfish`;
     let URL = `http://164.52.195.161/API/SendMsg.aspx?uname=20240015&pass=59s993An&send=OFLOGN&dest=${phone}&msg=${msg}`;
-    // let providerOtp = axios.get(URL);
-    // providerOtp.then((e) => {}).catch((err) => console.log(err));
+    let providerOtp = axios.get(URL);
+    providerOtp.then((e) => {}).catch((err) => console.log(err));
   }
 
   const updateObj = { otp };
