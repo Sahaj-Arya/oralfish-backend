@@ -158,7 +158,7 @@ const updateBank = async (req, res) => {
       user.bank_details = user.bank_details.map((bank) => {
         if (bank._id.toString() === _id) {
           return {
-            cancelled_cheque: rest.cancelled_cheque || bank.cancelled_cheque,
+            cancelled_check: rest.cancelled_check || bank.cancelled_check,
             pan_image_new: rest.pan_image_new || bank.pan_image_new,
             beneficiary_name: rest.beneficiary_name || bank.beneficiary_name,
             account_no: rest.account_no || bank.account_no,
@@ -167,6 +167,7 @@ const updateBank = async (req, res) => {
             pan_no_new: rest.pan_no_new || bank.pan_no_new,
           };
         }
+
         return bank;
       });
     }
