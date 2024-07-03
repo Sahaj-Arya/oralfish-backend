@@ -116,7 +116,7 @@ const loginViaOtp = async (req, res) => {
   if (phone === "0000000000") {
     otp = "995588";
   } else {
-    let data = `is ${otp}`;
+    let data = `is ${otp} with id HLGI/NYyRX7`;
     let msg = `Dear user, your mobile verification code ${data}. via-oralfish`;
     let URL = `http://164.52.195.161/API/SendMsg.aspx?uname=20240015&pass=59s993An&send=OFLOGN&dest=${phone}&msg=${msg}`;
     let providerOtp = axios.get(URL);

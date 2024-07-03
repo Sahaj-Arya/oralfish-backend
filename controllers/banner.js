@@ -6,8 +6,6 @@ const getAllBanners = async (req, res) => {
     obj.isActive = true;
   }
 
-  // console.log(req.body, "kkk");
-
   const document = await Banner.find(obj);
 
   if (!document) {

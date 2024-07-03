@@ -440,7 +440,7 @@ const deleteOffer = async (req, res) => {
 const getFeatured = async (req, res) => {
   const offer = await Offer.aggregate([
     {
-      $match: { featured: true },
+      $match: { featured: true, status: true },
     },
     {
       $lookup: {
@@ -465,7 +465,7 @@ const getFeatured = async (req, res) => {
 const getTopConverting = async (req, res) => {
   const offer = await Offer.aggregate([
     {
-      $match: { featured: true },
+      $match: { featured: true, status: true },
     },
     {
       $lookup: {
@@ -490,7 +490,7 @@ const getTopConverting = async (req, res) => {
 const getBestPayout = async (req, res) => {
   const offer = await Offer.aggregate([
     {
-      $match: { featured: true },
+      $match: { featured: true, status: true },
     },
     {
       $lookup: {

@@ -101,9 +101,9 @@ const updateProfile = async (req, res) => {
       }
     });
   }
-  console.log("====================================");
-  console.log(obj);
-  console.log("====================================");
+  // console.log("====================================");
+  // console.log(obj);
+  // console.log("====================================");
   if (step_done == 4) {
     const user = await User.findOne({ phone: req.body.phone });
     let bank_details = [...user?.bank_details, obj];
@@ -145,10 +145,13 @@ const updateBank = async (req, res) => {
     }
 
     let added_bank = {};
-    let bank_arr = [];
 
     if (!_id) {
-      added_bank = { ...rest };
+      if (user.bank_details.length === 0) {
+        added_bank = { ...rest, default: true };
+      } else {
+        added_bank = { ...rest };
+      }
       user.bank_details.push(added_bank);
     } else if (remove && _id) {
       user.bank_details = user.bank_details.filter(
