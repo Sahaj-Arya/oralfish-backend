@@ -414,7 +414,24 @@ const updateIfFeatured = async (req, res) => {
     .status(StatusCodes.ACCEPTED)
     .json({ message: `Offer not featured `, success: true, offer });
 };
+const updateIfConverting = async (req, res) => {
+  const { id, converting } = req.body;
 
+  const offer = await Offer.findByIdAndUpdate(id, { converting });
+  if (!offer) {
+    return res
+      .status(StatusCodes.NOT_FOUND)
+      .json({ message: "Offer does not exists", success: false });
+  }
+  if (converting) {
+    return res
+      .status(StatusCodes.ACCEPTED)
+      .json({ message: `Offer Updated `, success: true, offer });
+  }
+  return res
+    .status(StatusCodes.ACCEPTED)
+    .json({ message: `Offer Updated`, success: true, offer });
+};
 const deleteOffer = async (req, res) => {
   const { id } = req.body;
 
@@ -460,12 +477,18 @@ const getFeatured = async (req, res) => {
   if (!offer) {
     return res.send({ success: false, message: "failed" });
   }
-  return res.send({ data: offer, message: "Data Fetched", success: true });
+  return res.send({
+    data: offer,
+    message: "Data Fetched",
+    success: true,
+    doc: offer?.length,
+  });
 };
+
 const getTopConverting = async (req, res) => {
   const offer = await Offer.aggregate([
     {
-      $match: { featured: true, status: true },
+      $match: { status: true, converting: true },
     },
     {
       $lookup: {
@@ -485,12 +508,19 @@ const getTopConverting = async (req, res) => {
   if (!offer) {
     return res.send({ success: false, message: "failed" });
   }
-  return res.send({ data: offer, message: "Data Fetched", success: true });
+  return res.send({
+    data: offer,
+    message: "Data Fetched",
+    success: true,
+    doc: offer?.length,
+  });
 };
+
 const getBestPayout = async (req, res) => {
+  let { limit = 5 } = req.query;
   const offer = await Offer.aggregate([
     {
-      $match: { featured: true, status: true },
+      $match: { status: true },
     },
     {
       $lookup: {
@@ -506,11 +536,33 @@ const getBestPayout = async (req, res) => {
         preserveNullAndEmptyArrays: true, // Optional: Keeps documents that do not match the lookup
       },
     },
+
+    {
+      $addFields: {
+        sortKey: { $toDouble: "$mobile_data.earning" }, // Convert to number inline for sorting
+      },
+    },
+    {
+      $sort: {
+        sortKey: -1, // Sort by the converted number in descending order
+      },
+    },
+    {
+      $match: {
+        status: true,
+      },
+    },
+    { $limit: +limit },
   ]);
   if (!offer) {
     return res.send({ success: false, message: "failed" });
   }
-  return res.send({ data: offer, message: "Data Fetched", success: true });
+  return res.send({
+    data: offer,
+    message: "Data Fetched",
+    success: true,
+    doc: offer?.length,
+  });
 };
 module.exports = {
   getAllOffers,
@@ -527,4 +579,5 @@ module.exports = {
   getFeatured,
   getTopConverting,
   getBestPayout,
+  updateIfConverting,
 };

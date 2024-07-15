@@ -6,101 +6,309 @@ const { ObjectId } = require("mongodb");
 const { checkClickIdExists } = require("../utils/specialFunctions");
 
 const getAllLeads = async (req, res) => {
-  let limit = 100;
+  try {
+    const {
+      limit = 10,
+      page = 1,
+      sortField = "date",
+      sortOrder = "asc",
+      search = "",
+      fromDate,
+      toDate,
+      type,
+    } = req.query;
 
-  const lead_doc = await Lead.aggregate([
-    {
-      $addFields: {
-        // bank_id_obj: { $toObjectId: "$bank_id" },
-        category_id_obj: { $toObjectId: "$category_id" },
-        user_id_obj: { $toObjectId: "$user_id" },
-        offer_id_obj: { $toObjectId: "$offer_id" },
-      },
-    },
-    // {
-    //   $lookup: {
-    //     from: "banks",
-    //     localField: "bank_id_obj",
-    //     foreignField: "_id",
-    //     as: "bank_info",
-    //   },
-    // },
-    {
-      $lookup: {
-        from: "category",
-        localField: "category_id_obj",
-        foreignField: "_id",
-        as: "category_info",
-      },
-    },
-    {
-      $lookup: {
-        from: "users",
-        localField: "user_id_obj",
-        foreignField: "_id",
-        as: "user_info",
-      },
-    },
-    {
-      $lookup: {
-        from: "offers",
-        localField: "offer_id_obj",
-        foreignField: "_id",
-        as: "offer_info",
-      },
-    },
-    {
-      $project: {
-        // bank_id_obj: 0,
-        category_id_obj: 0,
-        user_id_obj: 0,
-        offer_id_obj: 0,
-      },
-    },
-    // {
-    //   $unwind: {
-    //     path: "$bank_info",
-    //     preserveNullAndEmptyArrays: true,
-    //   },
-    // },
-    {
-      $unwind: {
-        path: "$category_info",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-    {
-      $unwind: {
-        path: "$user_info",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-    {
-      $unwind: {
-        path: "$offer_info",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-    {
-      $limit: limit,
-    },
-    // You can add additional stages here as needed.
-  ]);
+    const sortOrderValue = sortOrder === "asc" ? 1 : -1;
+    const limitValue = parseInt(limit, 10);
+    const skipValue = (parseInt(page, 10) - 1) * limitValue;
 
-  if (!lead_doc) {
-    return res.send({ success: false, message: "failed" });
+    const matchConditions = {};
+    if (search) {
+      matchConditions.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { phone: { $regex: search, $options: "i" } },
+        { "offer_info.mobile_data.title": { $regex: search, $options: "i" } },
+      ];
+    }
+    if (type && matchConditions?.$or) {
+      matchConditions.$or.push({
+        "offer_info._id": new ObjectId(type),
+      });
+    } else if (type && !matchConditions?.$or) {
+      matchConditions.$or = [
+        {
+          "offer_info._id": new ObjectId(type),
+        },
+      ];
+    }
+    if (fromDate && toDate) {
+      matchConditions.created = {
+        $gte: new Date(fromDate),
+        $lte: new Date(toDate),
+      };
+    }
+
+    const pipeline = [
+      {
+        $addFields: {
+          category_id_obj: { $toObjectId: "$category_id" },
+          user_id_obj: { $toObjectId: "$user_id" },
+          offer_id_obj: { $toObjectId: "$offer_id" },
+        },
+      },
+      {
+        $lookup: {
+          from: "category",
+          localField: "category_id_obj",
+          foreignField: "_id",
+          as: "category_info",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "user_id_obj",
+          foreignField: "_id",
+          as: "user_info",
+        },
+      },
+      {
+        $lookup: {
+          from: "offers",
+          localField: "offer_id_obj",
+          foreignField: "_id",
+          as: "offer_info",
+        },
+      },
+
+      {
+        $project: {
+          category_id_obj: 0,
+          user_id_obj: 0,
+          offer_id_obj: 0,
+        },
+      },
+      {
+        $unwind: {
+          path: "$category_info",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: "$user_info",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: "$offer_info",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $match: Object.keys(matchConditions).length > 0 ? matchConditions : {},
+      },
+    ];
+
+    if (sortField) {
+      pipeline.push({
+        $sort: sortField === "date" ? { created: sortOrderValue } : {},
+      });
+    }
+    const countPipeline = [
+      ...pipeline,
+      {
+        $count: "total",
+      },
+    ];
+    const countResult = await Lead.aggregate(countPipeline);
+
+    if (skipValue) {
+      pipeline.push({
+        $skip: skipValue,
+      });
+    }
+    if (limit) {
+      pipeline.push({
+        $limit: limitValue,
+      });
+    }
+
+    const lead_doc = await Lead.aggregate(pipeline);
+
+    const totalDocuments = countResult.length > 0 ? countResult[0].total : 0;
+    const totalPages = Math.ceil(totalDocuments / limitValue);
+
+    if (!lead_doc || lead_doc.length === 0) {
+      return res
+        .status(200)
+        .send({ success: false, message: "No Leads Found" });
+    }
+
+    const nextPage =
+      parseInt(page, 10) < totalPages ? parseInt(page, 10) + 1 : null;
+
+    return res.send({
+      data: lead_doc,
+      message: "Data Fetched",
+      success: true,
+      pagination: {
+        totalDocuments,
+        totalPages,
+        currentPage: parseInt(page, 10),
+        nextPage,
+        limit: limitValue,
+      },
+    });
+  } catch (err) {
+    return res.status(500).send({ success: false, message: err.message });
   }
-  return res.send({
-    data: lead_doc,
-    message: "Data Fetched",
-    success: true,
-    total: lead_doc?.length,
-  });
+};
+
+const downloadAllLeads = async (req, res) => {
+  try {
+    const {
+      sortField = "date",
+      sortOrder = "asc",
+      search = "",
+      fromDate,
+      toDate,
+      type,
+    } = req.query;
+
+    const sortOrderValue = sortOrder === "asc" ? 1 : -1;
+
+    const matchConditions = {};
+    if (search) {
+      matchConditions.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { phone: { $regex: search, $options: "i" } },
+        { "offer_info.mobile_data.title": { $regex: search, $options: "i" } },
+      ];
+    }
+    if (type && matchConditions?.$or) {
+      matchConditions.$or.push({
+        "offer_info._id": new ObjectId(type),
+      });
+    } else if (type && !matchConditions?.$or) {
+      matchConditions.$or = [
+        {
+          "offer_info._id": new ObjectId(type),
+        },
+      ];
+    }
+    if (fromDate && toDate) {
+      matchConditions.created = {
+        $gte: new Date(fromDate),
+        $lte: new Date(toDate),
+      };
+    }
+
+    const pipeline = [
+      {
+        $addFields: {
+          category_id_obj: { $toObjectId: "$category_id" },
+          user_id_obj: { $toObjectId: "$user_id" },
+          offer_id_obj: { $toObjectId: "$offer_id" },
+        },
+      },
+      {
+        $lookup: {
+          from: "category",
+          localField: "category_id_obj",
+          foreignField: "_id",
+          as: "category_info",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "user_id_obj",
+          foreignField: "_id",
+          as: "user_info",
+        },
+      },
+      {
+        $lookup: {
+          from: "offers",
+          localField: "offer_id_obj",
+          foreignField: "_id",
+          as: "offer_info",
+        },
+      },
+
+      {
+        $project: {
+          category_id_obj: 0,
+          user_id_obj: 0,
+          offer_id_obj: 0,
+        },
+      },
+      {
+        $unwind: {
+          path: "$category_info",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: "$user_info",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: "$offer_info",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $match: Object.keys(matchConditions).length > 0 ? matchConditions : {},
+      },
+    ];
+
+    if (sortField) {
+      pipeline.push({
+        $sort: sortField === "date" ? { created: sortOrderValue } : {},
+      });
+    }
+    const countPipeline = [
+      ...pipeline,
+      {
+        $count: "total",
+      },
+    ];
+
+    const countResult = await Lead.aggregate(countPipeline);
+
+    const lead_doc = await Lead.aggregate(pipeline);
+
+    const totalDocuments = countResult.length > 0 ? countResult[0].total : 0;
+
+    if (!lead_doc || lead_doc.length === 0) {
+      return res
+        .status(200)
+        .send({ success: false, message: "No Leads Found" });
+    }
+
+    return res.send({
+      data: lead_doc,
+      message: "Data Fetched",
+      success: true,
+      pagination: {
+        totalDocuments,
+      },
+    });
+  } catch (err) {
+    return res.status(500).send({ success: false, message: err.message });
+  }
 };
 
 const getLeadsById = async (req, res) => {
   const { user_id } = req.body;
-
   try {
     const {
       limit = 10,
@@ -362,86 +570,5 @@ module.exports = {
   getLeadsById,
   settleLeads,
   getSelectedLeads,
+  downloadAllLeads,
 };
-
-// const settleLeads = async (req, res) => {
-
-//   // console.log(req.body.data, "exw");
-//   let updateData = req.body.data;
-//   // return;
-//   const bulkOperations = updateData.map((e) => {
-//     return {
-//       updateMany: {
-//         filter: {
-//           affiliate_id: e?.refferal_id,
-//           click_id: e?.click_id,
-//           approved: false,
-//         },
-//         update: { approved: e?.status, remarks: e?.remarks },
-//         upsert: false,
-//       },
-//     };
-//   });
-
-//   for (const e of updateData) {
-//     if (e?.status === true) {
-//       const offer = await Offer.findOne({ title: e?.offer_name });
-//       if (!offer) {
-//         break;
-//       }
-
-//       const data = {
-//         amount: offer?.earning,
-//         rejected: false,
-//         pending: true,
-//         approved: false,
-//         settled: false,
-//         created: Date.now(),
-//         updated: Date.now(),
-//         offer_id: new ObjectId(offer?._id),
-//         referral_id: e?.refferal_id,
-//         click_id: e?.click_id,
-//       };
-
-//       let user = await User.findOne({ referral_id: e?.refferal_id });
-
-//       if (checkClickIdExists(user?.lead_settlement, e?.click_id)) {
-//         break;
-//       }
-
-//       // refferal_id,click_id,offer_name,status
-
-//       let orderDetails = {
-//         amount: offer?.earning,
-//         rejected: false,
-//         pending: true,
-//         approved: false,
-//         settled: false,
-//         offer_id: new ObjectId(offer?._id),
-//         referral_id: e?.refferal_id,
-//         click_id: e?.click_id,
-//         user_id: new ObjectId(user?._id),
-//       };
-
-//       const order = await Orders.create(orderDetails);
-
-//       user.lead_settlement.push({ ...data, order_id: order?._id });
-//       await user.save();
-//     }
-//   }
-
-//   const result = await Lead.bulkWrite(bulkOperations);
-
-//   if (!result) {
-//     return res.send({ success: false, message: "Failed to update" });
-//   }
-
-//   return res.send({
-//     message: `${
-//       result.modifiedCount === 0
-//         ? "No documents updated"
-//         : result.modifiedCount + " " + "documents updated successfully"
-//     } `,
-//     success: true,
-//   });
-// };
