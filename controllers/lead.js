@@ -11,7 +11,7 @@ const getAllLeads = async (req, res) => {
       limit = 10,
       page = 1,
       sortField = "date",
-      sortOrder = "asc",
+      sortOrder = "desc",
       search = "",
       fromDate,
       toDate,
@@ -31,7 +31,7 @@ const getAllLeads = async (req, res) => {
         { "offer_info.mobile_data.title": { $regex: search, $options: "i" } },
       ];
     }
-    if (type && matchConditions?.$or) {
+    if (type && matchConditions?.$or?.length > 0) {
       matchConditions.$or.push({
         "offer_info._id": new ObjectId(type),
       });
@@ -309,15 +309,17 @@ const downloadAllLeads = async (req, res) => {
 
 const getLeadsById = async (req, res) => {
   const { user_id } = req.body;
+
   try {
-    const {
+    let {
       limit = 10,
       page = 1,
       sortField = "date",
-      sortOrder = "asc",
+      sortOrder = "desc",
       search = "",
+      type = "1",
     } = req.query;
-
+    page = +page;
     const sortOrderValue = sortOrder === "asc" ? 1 : -1;
     const limitValue = parseInt(limit, 10);
     const skipValue = (parseInt(page, 10) - 1) * limitValue;
@@ -342,6 +344,29 @@ const getLeadsById = async (req, res) => {
       matchConditions.push({ user_id });
     }
 
+    if (type) {
+      switch (type) {
+        case "2":
+          matchConditions.push({
+            isComplete: "approved",
+            status: "",
+          });
+          break;
+        case "3":
+          matchConditions.push({
+            $or: [{ isComplete: "" }, { isComplete: "rejected" }],
+            status: "",
+          });
+          break;
+        case "4":
+          matchConditions.push({
+            status: "settled",
+          });
+          break;
+        default:
+          break;
+      }
+    }
     const pipeline = [
       {
         $match: matchConditions.length > 0 ? { $and: matchConditions } : {},

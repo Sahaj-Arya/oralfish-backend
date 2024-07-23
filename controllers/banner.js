@@ -1,17 +1,59 @@
 const Banner = require("../models/Banner");
 
 const getAllBanners = async (req, res) => {
-  let obj = {};
-  if (req?.body?.isActive) {
-    obj.isActive = true;
-  }
+  try {
+    let matchCondition = {};
 
-  const document = await Banner.find(obj);
+    if (req?.body?.isActive) {
+      matchCondition = { isActive: true, "offer_info.status": true };
+    }
 
-  if (!document) {
-    return res.send({ success: false, message: "failed" });
+    const banners = await Banner.aggregate([
+      {
+        $addFields: {
+          offer_id_obj: { $toObjectId: "$route_id" },
+        },
+      },
+      {
+        $lookup: {
+          from: "offers",
+          localField: "offer_id_obj",
+          foreignField: "_id",
+          as: "offer_info",
+        },
+      },
+      {
+        $project: {
+          offer_id_obj: 0,
+        },
+      },
+      {
+        $unwind: {
+          path: "$offer_info",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $match: matchCondition,
+      },
+    ]);
+
+    if (!banners || banners.length === 0) {
+      return res.send({ success: false, message: "Failed to fetch data" });
+    }
+
+    return res.send({
+      data: banners,
+      message: "Data Fetched",
+      success: true,
+      docs: banners.length,
+    });
+  } catch (error) {
+    console.error("Error fetching banners:", error);
+    return res
+      .status(500)
+      .send({ success: false, message: "Internal Server Error" });
   }
-  return res.send({ data: document, message: "Data Fetched", success: true });
 };
 
 const addBanner = async (req, res) => {

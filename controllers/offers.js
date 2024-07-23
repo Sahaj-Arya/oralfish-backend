@@ -481,7 +481,7 @@ const getFeatured = async (req, res) => {
     data: offer,
     message: "Data Fetched",
     success: true,
-    doc: offer?.length,
+    docs: offer?.length,
   });
 };
 
@@ -512,7 +512,7 @@ const getTopConverting = async (req, res) => {
     data: offer,
     message: "Data Fetched",
     success: true,
-    doc: offer?.length,
+    docs: offer?.length,
   });
 };
 
@@ -561,7 +561,7 @@ const getBestPayout = async (req, res) => {
     data: offer,
     message: "Data Fetched",
     success: true,
-    doc: offer?.length,
+    docs: offer?.length,
   });
 };
 module.exports = {

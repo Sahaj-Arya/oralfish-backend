@@ -8,7 +8,7 @@ const { sendbulkNotification } = require("./notification");
 
 const getOrderByUid = async (req, res) => {
   const { user_id } = req.body;
-
+  // console.log(req.query);
   try {
     const {
       limit = 10,
@@ -16,6 +16,7 @@ const getOrderByUid = async (req, res) => {
       sortField = "date",
       sortOrder = "asc",
       search = "",
+      type = "1",
     } = req.query;
 
     const sortOrderValue = sortOrder === "asc" ? 1 : -1;
@@ -37,6 +38,28 @@ const getOrderByUid = async (req, res) => {
           { "offer_info.mobile_data.title": { $regex: search, $options: "i" } },
         ],
       });
+    }
+    if (type) {
+      switch (type) {
+        case "2":
+          matchConditions.push({
+            settled: false,
+          });
+          break;
+        case "3":
+          matchConditions.push({
+            settled: true,
+          });
+          break;
+        case "4":
+          matchConditions.push({
+            settled: true,
+            redeemed: true,
+          });
+          break;
+        default:
+          break;
+      }
     }
     if (user_id) {
       matchConditions.push({ user_id: new ObjectId(user_id) });
