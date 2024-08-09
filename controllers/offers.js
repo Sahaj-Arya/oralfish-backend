@@ -3,6 +3,8 @@ const { StatusCodes } = require("http-status-codes");
 
 const Offer = require("../models/Offer");
 const DeletedData = require("../models/DeletedData");
+const { sendbulkNotificationFn } = require("./notification");
+const Template = require("../models/Template");
 
 const getAllOffers = async (req, res) => {
   try {
@@ -201,35 +203,52 @@ const getOfferWeb = async (req, res) => {
 };
 
 const createOffer = async (req, res) => {
-  let { type_id, offer_data, ...rest } = req.body;
+  try {
+    let { type_id, offer_data, ...rest } = req.body;
 
-  type_id = new ObjectId(type_id);
+    type_id = new ObjectId(type_id);
 
-  let arr = [];
-  offer_data?.forEach((item) => {
-    if (item.value?.includes("\n")) {
-      item.value = item?.value?.split("\n");
-      arr.push(item);
-      return;
+    const formattedOfferData = offer_data?.map((item) => {
+      if (item.value?.includes("\n")) {
+        item.value = item.value.split("\n");
+      }
+      return item;
+    });
+
+    const document = await Offer.create({
+      ...rest,
+      type_id,
+      offer_data: formattedOfferData,
+    });
+
+    if (!document) {
+      return res
+        .status(500)
+        .send({ success: false, message: "Offer creation failed" });
     }
-    arr.push(item);
-  });
-  // console.log(arr);
-  const document = await Offer.create({
-    ...rest,
-    type_id,
-    offer_data: arr,
-  });
 
-  if (!document) {
-    return res.send({ success: false, message: "failed" });
+    const { mobile_data } = document._doc;
+    const data = {
+      title: `New Offer - ${mobile_data?.title} `,
+      body: `Alert : With ${mobile_data?.title} Earn upto ₹${mobile_data?.earning}`,
+      image: mobile_data?.product_image,
+      route: "SingleOffer",
+      route_id: document._id?.toString(),
+    };
+
+    await sendbulkNotificationFn(data);
+
+    return res
+      .status(201)
+      .send({ data: document, message: "Offer Created", success: true });
+  } catch (error) {
+    return res.status(500).send({ success: false, message: error.message });
   }
-  return res.send({ data: document, message: "Offer Created", success: true });
 };
 
 const updateOffer = async (req, res) => {
-  let { id, type_id = "", offer_data, ...rest } = req.body;
-
+  let { id, type_id = "", offer_data, update, ...rest } = req.body;
+  console.log(req.body?._id);
   let arr = [];
 
   offer_data?.forEach((item) => {
@@ -246,14 +265,35 @@ const updateOffer = async (req, res) => {
   if (type_id) {
     obj.type_id = new ObjectId(type_id);
   }
-  // console.log(data);
-  const document = await Offer.findOneAndUpdate({ _id: id }, obj);
 
-  if (!document) {
-    return res.send({ success: false, message: "failed" });
-  }
+  Offer.findById({ _id: id }).then(async (offe) => {
+    // console.log(offe?._doc?._id);
+    let notiData = {
+      title: `${offe?._doc?.mobile_data?.title} Price Update`,
+      body: `Alert Price updated from ₹${offe?._doc?.mobile_data?.earning} to ₹${req.body?.mobile_data?.earning}`,
+      image: req?.body?.mobile_data?.product_image,
+      route: "SingleOffer",
+      route_id: req?.body?.id,
+    };
 
-  return res.send({ data: document, message: "Offer Updated", success: true });
+    if (
+      offe?._doc?.mobile_data?.earning !== req?.body?.mobile_data?.earning &&
+      offe?._doc?.status === true
+    ) {
+      await sendbulkNotificationFn(notiData);
+    }
+
+    const document = await Offer.findOneAndUpdate({ _id: id }, obj);
+
+    if (!document) {
+      return res.send({ success: false, message: "failed" });
+    }
+    return res.send({
+      data: document,
+      message: "Offer Updated",
+      success: true,
+    });
+  });
 };
 
 const updateRank = async (req, res) => {
@@ -355,6 +395,7 @@ const getOfferById = async (req, res) => {
     const totalDocuments = await Offer.countDocuments({
       ...(matchConditions.length > 0 ? { $and: matchConditions } : {}),
     });
+
     const totalPages = Math.ceil(totalDocuments / limitValue);
 
     if (!offer_doc || offer_doc.length === 0) {
@@ -414,6 +455,7 @@ const updateIfFeatured = async (req, res) => {
     .status(StatusCodes.ACCEPTED)
     .json({ message: `Offer not featured `, success: true, offer });
 };
+
 const updateIfConverting = async (req, res) => {
   const { id, converting } = req.body;
 
@@ -432,6 +474,7 @@ const updateIfConverting = async (req, res) => {
     .status(StatusCodes.ACCEPTED)
     .json({ message: `Offer Updated`, success: true, offer });
 };
+
 const deleteOffer = async (req, res) => {
   const { id } = req.body;
 
@@ -564,6 +607,7 @@ const getBestPayout = async (req, res) => {
     docs: offer?.length,
   });
 };
+
 module.exports = {
   getAllOffers,
   createOffer,

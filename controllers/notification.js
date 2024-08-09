@@ -6,6 +6,7 @@ const { StatusCodes } = require("http-status-codes");
 const { settlement } = require("../utils/template/settlement");
 const User = require("../models/User");
 const { getAllFCMTokens } = require("../utils/helperFunctions");
+const Notification = require("../models/Notification");
 
 const serviceAccount = {
   type: "service_account",
@@ -27,22 +28,28 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 
-const singleNotification = async (req, res) => {
-  const { token, title, body, image } = req.body;
+const sendNotification = async (data) => {
+  const { tokens = [], title, image, route, route_id } = data;
+  let body = data?.message;
+  await Notification.create({
+    title,
+    body,
+    image,
+    user_id: "",
+    route_id: route_id ? route_id : "",
+    route: route ? route : "Home",
+  });
 
-  if (!token || !title || !body) {
-    return res.status(400).json({ error: "Invalid request parameters" });
+  if (tokens.length < 1 || !title || !body) {
+    console.log({ error: "Invalid request parameters" });
   }
 
-  // let message = {
-  //   token,
-  //   notification: {
-  //     title,
-  //     body,
-  //   },
-  // };
-
   let message = {
+    data: {
+      route,
+      route_id,
+      sound: "default",
+    },
     notification: {
       title,
       body,
@@ -50,9 +57,141 @@ const singleNotification = async (req, res) => {
     android: {
       notification: {
         imageUrl: image,
+        sound: "default",
       },
     },
-    token,
+    apns: {
+      payload: {
+        aps: {
+          "mutable-content": 1,
+        },
+      },
+      fcm_options: {
+        image: image,
+      },
+    },
+    // webpush: {
+    //   headers: {
+    //     image: image,
+    //   },
+    // },
+  };
+  let arr = [];
+
+  tokens.forEach(async (token) => {
+    try {
+      await admin.messaging().send({
+        ...message,
+        token: token,
+      });
+      arr.push(token);
+    } catch (error) {
+      // console.error("Error sending message:", error.errorInfo.message);
+    }
+  });
+};
+
+const sendbulkNotificationFn = async (params) => {
+  const {
+    title,
+    body,
+    image,
+    user_id = "",
+    route = "",
+    route_id = "",
+  } = params;
+
+  console.log("bulk", params);
+
+  // Create the notification document
+  await Notification.create({
+    title,
+    body,
+    image,
+    user_id,
+    route,
+    route_id,
+  });
+
+  // Get FCM tokens
+  let tokens;
+  try {
+    tokens = await getAllFCMTokens();
+  } catch (error) {
+    console.error("Error retrieving FCM tokens:", error);
+    return;
+  }
+
+  // Exit early if there are no tokens or necessary data
+  if (!tokens.length || !title || !body) {
+    return;
+  }
+
+  // Construct the message payload
+  const message = {
+    data: {
+      route,
+      route_id,
+    },
+    notification: {
+      title,
+      body,
+    },
+    android: {
+      notification: {
+        imageUrl: image,
+        sound: "default",
+      },
+    },
+    apns: {
+      payload: {
+        aps: {
+          "mutable-content": 1,
+        },
+      },
+      fcm_options: {
+        image,
+      },
+    },
+  };
+
+  // Send notifications in parallel
+  const results = await Promise.all(
+    tokens.map(async (token) => {
+      try {
+        await admin.messaging().send({ ...message, token });
+        // return { token, status: "success" };
+      } catch (error) {}
+    })
+  );
+
+  // Log the results
+  console.log("Send results:", results);
+};
+
+const singleNotification = async (req, res) => {
+  const { token, title, body, image } = req.body;
+
+  if (!token || !title || !body) {
+    return res.status(400).json({ error: "Invalid request parameters" });
+  }
+
+  let message = {
+    data: {
+      route,
+      route_id,
+      sound: "default",
+    },
+    notification: {
+      title,
+      body,
+    },
+    android: {
+      notification: {
+        imageUrl: image,
+        sound: "default",
+      },
+    },
     apns: {
       payload: {
         aps: {
@@ -94,13 +233,25 @@ const singleNotification = async (req, res) => {
 };
 
 const multiNotification = async (req, res) => {
-  const { tokens = [], title, body, image } = req.body;
+  const {
+    tokens = [],
+    title,
+    body,
+    image,
+    route = "",
+    route_id = "",
+  } = req.body;
 
   if (tokens.length < 1 || !title || !body) {
     return res.status(400).json({ error: "Invalid request parameters" });
   }
-  // console.log(req.body);
+
   let message = {
+    data: {
+      route,
+      route_id,
+      sound: "default",
+    },
     notification: {
       title,
       body,
@@ -108,6 +259,7 @@ const multiNotification = async (req, res) => {
     android: {
       notification: {
         imageUrl: image,
+        sound: "default",
       },
     },
     apns: {
@@ -133,12 +285,10 @@ const multiNotification = async (req, res) => {
     try {
       await admin.messaging().send({
         ...message,
-        token: token,
+        token,
       });
       arr.push(token);
-    } catch (error) {
-      // console.error("Error sending message:", error.errorInfo.message);
-    }
+    } catch (error) {}
   });
 
   return res
@@ -147,16 +297,29 @@ const multiNotification = async (req, res) => {
 };
 
 const bulkNotification = async (req, res) => {
-  const { title, body, image } = req.body;
-  console.log(req.body);
+  const { title, body, image, route, route_id } = req.body;
+
+  await Notification.create({
+    title,
+    body,
+    image,
+    user_id: "",
+    route,
+    route_id,
+  });
 
   let tokens = await getAllFCMTokens();
 
   if (tokens.length < 1 || !title || !body) {
     return res.status(400).json({ error: "Invalid request parameters" });
   }
-  // console.log(req.body);
+
   let message = {
+    data: {
+      route,
+      route_id,
+      sound: "default",
+    },
     notification: {
       title,
       body,
@@ -164,6 +327,7 @@ const bulkNotification = async (req, res) => {
     android: {
       notification: {
         imageUrl: image,
+        sound: "default",
       },
     },
     apns: {
@@ -209,6 +373,11 @@ const sendNotificationToAll = async (req, res) => {
   }
 
   let message = {
+    data: {
+      route,
+      route_id,
+      sound: "default",
+    },
     notification: {
       title,
       body,
@@ -216,6 +385,7 @@ const sendNotificationToAll = async (req, res) => {
     android: {
       notification: {
         imageUrl: image,
+        sound: "default",
       },
     },
     apns: {
@@ -231,7 +401,7 @@ const sendNotificationToAll = async (req, res) => {
     // webpush: {
     //   headers: {
     //     image: image,
-    //   },1
+    //   },
     // },
   };
 
@@ -338,9 +508,10 @@ async function sendMultiEmail(req, res) {
 
 const sendbulkNotification = async (tokens, title, body, image) => {
   if (tokens.length < 1 || !title || !body) {
-    return res.status(400).json({ error: "Invalid request parameters" });
+    console.log("Invalid request parameters");
+    return;
   }
-  // console.log(req.body);
+
   let message = {
     notification: {
       title,
@@ -390,6 +561,30 @@ const sendbulkNotification = async (tokens, title, body, image) => {
   //   .status(200)
   //   .json({ success: true, message: "Notification sent successfully" });
 };
+
+const saveNotification = async (req, res) => {
+  const { tokens, ...rest } = req.body;
+  const notification = await Notification.create(rest);
+
+  if (!notification) {
+    return res.status(400).json({
+      error: "Failed to create notification",
+      message: notification,
+      success: false,
+    });
+  }
+  return res.status(StatusCodes.CREATED).json({
+    message: "notification created successfully",
+    data: notification,
+    success: true,
+  });
+};
+
+const saveNotificationfn = async (data) => {
+  const { ...rest } = data;
+  await Notification.create(rest);
+};
+
 module.exports = {
   singleNotification,
   multiNotification,
@@ -399,4 +594,8 @@ module.exports = {
   sendMultiEmail,
   bulkNotification,
   sendbulkNotification,
+  sendNotification,
+  sendbulkNotificationFn,
+  saveNotification,
+  saveNotificationfn,
 };

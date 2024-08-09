@@ -1,27 +1,34 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
-const notificationSchema = new Schema({
-  userId: {
-    type: Schema.Types.ObjectId,
-    ref: "User",
-    index: true, // Indexing improves query performance
+const notificationSchema = new mongoose.Schema(
+  {
+    created_at: {
+      type: Date,
+      default: Date.now,
+    },
+    updated_at: {
+      type: Date,
+      default: Date.now,
+    },
   },
-  message: String,
-  link: String, // URL or identifier to redirect user on click
-  read: {
-    type: Boolean,
-    default: false,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-    index: true, // Helps in fetching recent notifications efficiently
-  },
+  { strict: false }
+);
+
+notificationSchema.pre("save", function (next) {
+  const currentDate = new Date();
+
+  this.updated_at = currentDate;
+
+  if (!this.created_at) {
+    this.created_at = currentDate;
+  }
+
+  next();
 });
 
-const Notification = mongoose.model(
+module.exports = mongoose.model(
   "Notification",
   notificationSchema,
-  "notification"
+  "notifications"
 );

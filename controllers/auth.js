@@ -1,4 +1,3 @@
-const { BadRequestError } = require("../errors");
 const { StatusCodes } = require("http-status-codes");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -119,29 +118,24 @@ const loginViaOtp = async (req, res) => {
   } else {
     let data = `is ${otp} with id HLGI/NYyRX7`;
     let msg = `Dear user, your mobile verification code ${data}. via-oralfish`;
-    // let URL = `http://164.52.195.161/API/SendMsg.aspx?uname=20240015&pass=59s993An&send=OFLOGN&dest=${phone}&msg=${msg}`;
-    // let providerOtp = axios.get(URL);
-    // providerOtp.then((e) => {}).catch((err) => console.log(err));
+    let URL = `http://164.52.195.161/API/SendMsg.aspx?uname=20240015&pass=59s993An&send=OFLOGN&dest=${phone}&msg=${msg}`;
+    let providerOtp = axios.get(URL);
+    providerOtp.then((e) => {}).catch((err) => console.log(err));
+    // console.log(otp);
   }
 
   const updateObj = { otp };
   if (fcm_token) {
-    if (existingUser && !existingUser?.fcm_token?.includes(fcm_token)) {
-      // updateObj["fcm_token"] = Array.from(
-      //   new Set([...existingUser?.fcm_token, fcm_token])
-      // );
-      let arr = existingUser?.fcm_token;
-      if (existingUser?.fcm_token?.length >= 2) {
-        arr?.slice(1);
-        arr.push(fcm_token);
-        updateObj["fcm_token"] = arr;
-      } else {
-        arr.push(fcm_token);
-        updateObj["fcm_token"] = arr;
-      }
+    let arr = existingUser?.fcm_token || [];
+    arr.push(fcm_token);
+    arr = Array.from(new Set(arr));
+    if (arr.length > 5) {
+      arr = arr.slice(arr?.length - 3);
+    } else if (arr.length > 3) {
+      arr = arr.slice(3);
     }
+    updateObj.fcm_token = arr;
   }
-
   if (existingUser) {
     if (!existingUser?.referral_id) {
       let code = await checkCode();

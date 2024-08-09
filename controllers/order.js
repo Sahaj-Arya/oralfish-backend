@@ -5,21 +5,25 @@ const { generateInvoice } = require("../utils/helperFunctions");
 const User = require("../models/User");
 const Offer = require("../models/Offer");
 const { sendbulkNotification } = require("./notification");
+const moment = require("moment");
 
 const getOrderByUid = async (req, res) => {
   const { user_id } = req.body;
-  // console.log(req.query);
+
   try {
     const {
       limit = 10,
       page = 1,
       sortField = "date",
-      sortOrder = "asc",
+      sortOrder = "desc",
       search = "",
       type = "1",
+      fromDate,
+      toDate,
+      lead = "true",
     } = req.query;
 
-    const sortOrderValue = sortOrder === "asc" ? 1 : -1;
+    const sortOrderValue = sortOrder === "desc" ? 1 : -1;
     const limitValue = parseInt(limit, 10);
     const skipValue = (parseInt(page, 10) - 1) * limitValue;
 
@@ -39,6 +43,16 @@ const getOrderByUid = async (req, res) => {
         ],
       });
     }
+
+    if (fromDate && toDate) {
+      matchConditions.push({
+        created: {
+          $gte: moment(fromDate, "YYYY/MM/DD").toDate(),
+          $lte: moment(toDate, "YYYY/MM/DD").toDate(),
+        },
+      });
+    }
+
     if (type) {
       switch (type) {
         case "2":
@@ -65,7 +79,7 @@ const getOrderByUid = async (req, res) => {
       matchConditions.push({ user_id: new ObjectId(user_id) });
     }
 
-    const pipeline = [
+    let pipeline = [
       {
         $lookup: {
           from: "offers",
@@ -74,17 +88,33 @@ const getOrderByUid = async (req, res) => {
           as: "offer_info",
         },
       },
+
       {
+        $unwind: {
+          path: "$offer_info",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+    ];
+
+    if (lead === "true") {
+      pipeline.push({
         $lookup: {
           from: "leads",
           localField: "lead_id",
           foreignField: "_id",
           as: "lead_info",
         },
-      },
-      {
-        $match: matchConditions.length > 0 ? { $and: matchConditions } : {},
-      },
+      });
+      pipeline.push({
+        $unwind: {
+          path: "$lead_info",
+          preserveNullAndEmptyArrays: true,
+        },
+      });
+    }
+
+    pipeline.push(
       {
         $project: {
           "offer_info._id": 0,
@@ -92,16 +122,7 @@ const getOrderByUid = async (req, res) => {
         },
       },
       {
-        $unwind: {
-          path: "$offer_info",
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $unwind: {
-          path: "$lead_info",
-          preserveNullAndEmptyArrays: true,
-        },
+        $match: matchConditions.length > 0 ? { $and: matchConditions } : {},
       },
       {
         $sort: sortOptions,
@@ -111,8 +132,8 @@ const getOrderByUid = async (req, res) => {
       },
       {
         $limit: limitValue,
-      },
-    ];
+      }
+    );
 
     const orderDocs = await Orders.aggregate(pipeline);
 
@@ -145,7 +166,6 @@ const getOrderByUid = async (req, res) => {
     return res.status(500).send({ success: false, message: err.message });
   }
 };
-
 const getSelectedOrders = async (req, res) => {
   try {
     const { ids } = req.body;
@@ -198,9 +218,127 @@ const getSelectedOrders = async (req, res) => {
       .send({ success: false, message: "Internal server error" });
   }
 };
+const downloadAllOrders = async (req, res) => {
+  try {
+    const {
+      sortField = "date",
+      sortOrder = "asc",
+      search = "",
+      fromDate,
+      toDate,
+      type,
+    } = req.query;
+    console.log(req.query, "h");
+    const sortOrderValue = sortOrder === "asc" ? 1 : -1;
 
+    const matchConditions = {};
+    if (search) {
+      matchConditions.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { phone: { $regex: search, $options: "i" } },
+        { "offer_info.mobile_data.title": { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // if (type && matchConditions?.$or) {
+    //   matchConditions.$or.push({
+    //     "offer_info._id": new ObjectId(type),
+    //   });
+    // } else if (type && !matchConditions?.$or) {
+    //   matchConditions.$or = [
+    //     {
+    //       "offer_info._id": new ObjectId(type),
+    //     },
+    //   ];
+    // }
+
+    if (fromDate && toDate) {
+      matchConditions.created = {
+        $gte: new Date(fromDate),
+        $lte: new Date(toDate),
+      };
+    }
+
+    const pipeline = [
+      {
+        $addFields: {
+          user_id_obj: { $toObjectId: "$user_id" },
+          offer_id_obj: { $toObjectId: "$offer_id" },
+        },
+      },
+
+      {
+        $lookup: {
+          from: "users",
+          localField: "user_id_obj",
+          foreignField: "_id",
+          as: "user_info",
+        },
+      },
+      {
+        $lookup: {
+          from: "offers",
+          localField: "offer_id_obj",
+          foreignField: "_id",
+          as: "offer_info",
+        },
+      },
+
+      {
+        $unwind: {
+          path: "$user_info",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: "$offer_info",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $match: Object.keys(matchConditions).length > 0 ? matchConditions : {},
+      },
+    ];
+
+    if (sortField) {
+      pipeline.push({
+        $sort: sortField === "date" ? { created: sortOrderValue } : {},
+      });
+    }
+    const countPipeline = [
+      ...pipeline,
+      {
+        $count: "total",
+      },
+    ];
+
+    const countResult = await Orders.aggregate(countPipeline);
+
+    const lead_doc = await Orders.aggregate(pipeline);
+
+    const totalDocuments = countResult.length > 0 ? countResult[0].total : 0;
+
+    if (!lead_doc || lead_doc.length === 0) {
+      return res
+        .status(200)
+        .send({ success: false, message: "No Orders Found" });
+    }
+
+    return res.send({
+      data: lead_doc,
+      message: "Data Fetched",
+      success: true,
+      pagination: {
+        totalDocuments,
+      },
+    });
+  } catch (err) {
+    return res.status(500).send({ success: false, message: err.message });
+  }
+};
 const approveOrders = async (req, res) => {
-  // console.log(req.body);
   try {
     const { ids } = req.body;
     let isUser = false;
@@ -320,4 +458,9 @@ const approveOrders = async (req, res) => {
   }
 };
 
-module.exports = { getOrderByUid, getSelectedOrders, approveOrders };
+module.exports = {
+  getOrderByUid,
+  getSelectedOrders,
+  approveOrders,
+  downloadAllOrders,
+};
