@@ -101,7 +101,7 @@ const sendbulkNotificationFn = async (params) => {
     route_id = "",
   } = params;
 
-  console.log("bulk", params);
+  // console.log("bulk", params);
 
   // Create the notification document
   await Notification.create({
@@ -166,7 +166,7 @@ const sendbulkNotificationFn = async (params) => {
   );
 
   // Log the results
-  console.log("Send results:", results);
+  // console.log("Send results:", results);
 };
 
 const singleNotification = async (req, res) => {
@@ -177,11 +177,11 @@ const singleNotification = async (req, res) => {
   }
 
   let message = {
-    data: {
-      route,
-      route_id,
-      sound: "default",
-    },
+    // data: {
+    //   route,
+    //   route_id,
+    //   sound: "default",
+    // },
     notification: {
       title,
       body,
@@ -585,6 +585,68 @@ const saveNotificationfn = async (data) => {
   await Notification.create(rest);
 };
 
+const getNotificationById = async (req, res) => {
+  const { id } = req.body;
+  const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10
+
+  if (!id) {
+    return res.status(StatusCodes.BAD_REQUEST).json({
+      message: "No User Id provided",
+      success: false,
+    });
+  }
+
+  try {
+    const query = {
+      user_id: { $in: [null, undefined, "", id] },
+    };
+
+    // Calculate the pagination values
+    const skip = (page - 1) * limit;
+
+    // Fetch the total number of documents that match the query
+    const totalDocuments = await Notification.countDocuments(query);
+
+    // Calculate total pages
+    const totalPages = Math.ceil(totalDocuments / limit);
+
+    // Fetch notifications with pagination and sorting by recent
+    const notifications = await Notification.find(query)
+      .sort({ created_at: -1 }) // Sort by created_at in descending order (most recent first)
+      .skip(skip) // Skip the appropriate number of documents for pagination
+      .limit(Number(limit)); // Limit the results to the specified number per page
+
+    if (notifications.length === 0) {
+      return res.status(400).json({
+        error: "No notifications found",
+        success: false,
+      });
+    }
+
+    // Determine if there's a next page
+    const nextPage = page < totalPages ? Number(page) + 1 : null;
+
+    return res.status(StatusCodes.OK).json({
+      message: "Notifications fetched",
+      data: notifications,
+      success: true,
+      pagination: {
+        currentPage: Number(page),
+        totalPages: totalPages,
+        totalDocuments: totalDocuments,
+        nextPage: nextPage,
+        limit,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      error: "An error occurred while fetching notifications",
+      success: false,
+    });
+  }
+};
+
 module.exports = {
   singleNotification,
   multiNotification,
@@ -598,4 +660,5 @@ module.exports = {
   sendbulkNotificationFn,
   saveNotification,
   saveNotificationfn,
+  getNotificationById,
 };

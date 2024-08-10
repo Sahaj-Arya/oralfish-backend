@@ -18,7 +18,15 @@ const getAllTemplates = async (req, res) => {
 };
 
 const createTemplate = async (req, res) => {
-  const { image = "", type, title, subject, message, route_id = "" } = req.body;
+  const {
+    image = "",
+    type,
+    title,
+    subject,
+    message,
+    route,
+    route_id = "",
+  } = req.body;
 
   let data = {};
   if (type == "email") {

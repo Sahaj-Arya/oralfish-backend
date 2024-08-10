@@ -123,6 +123,7 @@ const loginViaOtp = async (req, res) => {
     providerOtp.then((e) => {}).catch((err) => console.log(err));
     // console.log(otp);
   }
+  // console.log(fcm_token, "k");
 
   const updateObj = { otp };
   if (fcm_token) {
@@ -130,11 +131,13 @@ const loginViaOtp = async (req, res) => {
     arr.push(fcm_token);
     arr = Array.from(new Set(arr));
     if (arr.length > 5) {
-      arr = arr.slice(arr?.length - 3);
+      arr = arr.slice(arr?.length - 4);
     } else if (arr.length > 3) {
       arr = arr.slice(3);
     }
     updateObj.fcm_token = arr;
+
+    // console.log(updateObj.fcm_token);
   }
   if (existingUser) {
     if (!existingUser?.referral_id) {
