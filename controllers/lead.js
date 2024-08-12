@@ -354,7 +354,11 @@ const getLeadsById = async (req, res) => {
           break;
         case "3":
           matchConditions.push({
-            $or: [{ isComplete: "" }, { isComplete: "rejected" }],
+            $or: [
+              { isComplete: "" },
+              { isComplete: "rejected" },
+              { isComplete: "pending" },
+            ],
             status: "",
           });
           break;
@@ -488,7 +492,6 @@ const createLead = async (req, res) => {
 
 const settleLeads = async (req, res) => {
   let updateData = req.body.data;
-  // console.log(updateData);
   let data = { length: 0, orders: [] };
   for (const e of updateData) {
     let verifyOfferdoc = await Lead.findOne({
@@ -532,7 +535,6 @@ const settleLeads = async (req, res) => {
       referral_id: e?.refferal_id,
       // settled: false,
     });
-    console.log(findOrder?._doc?._id, "findOrder?._doc?._id");
 
     if (e?.status === "approved" && !findOrder?._doc?._id) {
       let order = await Orders.create(orderDetails);

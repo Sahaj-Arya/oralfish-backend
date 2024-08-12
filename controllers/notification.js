@@ -623,6 +623,19 @@ const getNotificationById = async (req, res) => {
       });
     }
 
+    // Calculate today's start and end time
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Fetch the count of notifications created today
+    const todayCount = await Notification.countDocuments({
+      ...query,
+      created_at: { $gte: startOfDay, $lte: endOfDay },
+    });
+
     // Determine if there's a next page
     const nextPage = page < totalPages ? Number(page) + 1 : null;
 
@@ -637,6 +650,7 @@ const getNotificationById = async (req, res) => {
         nextPage: nextPage,
         limit,
       },
+      todayCount: todayCount, // Include today's count in the response
     });
   } catch (error) {
     console.error("Error fetching notifications:", error);
