@@ -14,7 +14,7 @@ const LeadSchema = new mongoose.Schema(
     name: { type: String, required: true },
     email: { type: String, required: true },
     phone: { type: String, required: true },
-    earning: { type: String, default: null },
+    earning: { type: String, default: "0" },
     link_with_click_id: { type: String, default: "" },
     affiliate_id: { type: String, required: true },
   },

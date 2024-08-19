@@ -27,8 +27,8 @@ const UserSchema = new mongoose.Schema(
     work_experience: { type: String, default: "" },
     referral_id: { type: String, default: "" },
     wallet: { type: String, default: "0" },
-    redeem_wallet: { type: Boolean, default: false },
     profile_status: { type: String, default: "pending" },
+    payment_request: { type: Boolean, default: false },
     bank_details: [
       {
         bank_name: String,

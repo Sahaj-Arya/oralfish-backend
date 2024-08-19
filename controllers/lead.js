@@ -540,7 +540,7 @@ const settleLeads = async (req, res) => {
       let order = await Orders.create(orderDetails);
       data.orders.push(order);
       data.length++;
-
+      user.wallet = +user?.wallet + order?.amount;
       user.order_settlement = [...user?.order_settlement, order?._id];
       await user.save();
     }
