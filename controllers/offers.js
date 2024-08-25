@@ -121,7 +121,6 @@ const getAllOffersWeb = async (req, res) => {
   }
   return res.send({ data: offer_doc, message: "Data Fetched", success: true });
 };
-
 const getSelectedOffersWeb = async (req, res) => {
   try {
     const id = new ObjectId(req.body.id);
@@ -154,6 +153,9 @@ const getSelectedOffersWeb = async (req, res) => {
         DATA.push({ $match: { status: true } });
       }
     }
+
+    // Add a $sort stage to ensure status:true is on top
+    DATA.push({ $sort: { status: -1 } });
 
     const offer_doc = await Offer.aggregate(DATA);
 
@@ -426,7 +428,15 @@ const getOfferById = async (req, res) => {
 const updateOfferStatus = async (req, res) => {
   const { id, status } = req.body;
 
-  const offer = await Offer.findByIdAndUpdate(id, { status });
+  const query = { status };
+
+  if (status === false) {
+    query.featured = false;
+    query.converting = false;
+  }
+
+  const offer = await Offer.findByIdAndUpdate(id, query);
+
   if (!offer) {
     return res
       .status(StatusCodes.NOT_FOUND)

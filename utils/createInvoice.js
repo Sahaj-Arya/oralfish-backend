@@ -1,99 +1,36 @@
-const User = require("../models/User");
-const PDFDocument = require("pdfkit");
 const fs = require("fs");
-const path = require("path");
-const nodemailer = require("nodemailer");
-const { emailAuth } = require("./sendEmail");
+const PDFDocument = require("pdfkit");
 
-async function getAllFCMTokens() {
-  try {
-    const result = await User.aggregate([
-      // Unwind the fcm_token array to get individual tokens
-      { $unwind: "$fcm_token" },
-      // Project to output only the fcm_token field
-      {
-        $project: {
-          _id: 0,
-          fcm_token: 1,
-        },
-      },
-    ]);
+function createInvoice(invoice, path) {
+  let doc = new PDFDocument({ size: "A4", margin: 50 });
 
-    const tokens = result.map((user) => user.fcm_token);
-    return tokens;
-  } catch (err) {
-    throw err;
-  }
-}
+  generateHeader(doc);
+  generateCustomerInformation(doc, invoice);
+  generateInvoiceTable(doc, invoice);
+  generateFooter(doc);
 
-async function generateInvoice(invoice, path) {
-  try {
-    let doc = new PDFDocument({ margin: 50 });
-
-    generateHeader(doc);
-    generateCustomerInformation(doc, invoice);
-    generateInvoiceTable(doc, invoice);
-    generateFooter(doc);
-
-    const fileName = Date.now() + path;
-
-    const writeStream = fs.createWriteStream("../rojgarData/pdfs/" + fileName);
-    doc.pipe(writeStream);
-
-    doc.end();
-
-    const transporter = nodemailer.createTransport(emailAuth);
-    const mailOptions = {
-      from: '"Rojgar App" <support@rojgarapp.in>',
-      to: invoice?.shipping?.email,
-      subject: "Invoice",
-      text: "Please find the attached invoice.",
-      attachments: [
-        {
-          filename: fileName,
-          path: "../rojgarData/pdfs/" + fileName,
-        },
-      ],
-    };
-
-    // Send email
-    transporter.sendMail(mailOptions, function (error, info) {
-      if (error) {
-        console.log(error);
-      } else {
-        console.log("Email sent: " + info.response);
-      }
-    });
-    const url = process.env.WEB_URL + `/pdf/${fileName}`;
-    return url;
-  } catch (error) {
-    console.log(error);
-  }
+  doc.end();
+  doc.pipe(fs.createWriteStream(path));
 }
 
 function generateHeader(doc) {
   doc
-    .image(__dirname + "/logo.png", 50, 45, {
-      width: 50,
-    })
+    .image("logo.png", 50, 45, { width: 50 })
     .fillColor("#444444")
     .fontSize(20)
-    .text("Rojgar App Inc.", 110, 57)
+    .text("ACME Inc.", 110, 57)
     .fontSize(10)
-    .text("Janakpuri Main Street", 200, 65, { align: "right" })
-    .text("New Delhi, IN, 110025", 200, 80, { align: "right" })
+    .text("ACME Inc.", 200, 50, { align: "right" })
+    .text("123 Main Street", 200, 65, { align: "right" })
+    .text("New York, NY, 10025", 200, 80, { align: "right" })
     .moveDown();
 }
 
-function generateFooter(doc) {
-  doc.fontSize(10).text("Thank you for the business", 50, 700, {
-    align: "center",
-    width: 500,
-  });
-}
-
 function generateCustomerInformation(doc, invoice) {
-  doc.fillColor("#444444").fontSize(20).text("Invoice", 50, 160);
+  doc
+    .fillColor("#444444")
+    .fontSize(20)
+    .text("Invoice", 50, 160);
 
   generateHr(doc, 185);
 
@@ -141,7 +78,7 @@ function generateInvoiceTable(doc, invoice) {
     doc,
     invoiceTableTop,
     "Item",
-    // "Description",
+    "Description",
     "Unit Cost",
     "Quantity",
     "Line Total"
@@ -177,15 +114,15 @@ function generateInvoiceTable(doc, invoice) {
   );
 
   const paidToDatePosition = subtotalPosition + 20;
-  // generateTableRow(
-  //   doc,
-  //   paidToDatePosition,
-  //   "",
-  //   "",
-  //   "Paid To Date",
-  //   "",
-  //   formatCurrency(invoice.paid)
-  // );
+  generateTableRow(
+    doc,
+    paidToDatePosition,
+    "",
+    "",
+    "Paid To Date",
+    "",
+    formatCurrency(invoice.paid)
+  );
 
   const duePosition = paidToDatePosition + 25;
   doc.font("Helvetica-Bold");
@@ -194,11 +131,22 @@ function generateInvoiceTable(doc, invoice) {
     duePosition,
     "",
     "",
-    "Paid",
+    "Balance Due",
     "",
     formatCurrency(invoice.subtotal - invoice.paid)
   );
   doc.font("Helvetica");
+}
+
+function generateFooter(doc) {
+  doc
+    .fontSize(10)
+    .text(
+      "Payment is due within 15 days. Thank you for your business.",
+      50,
+      780,
+      { align: "center", width: 500 }
+    );
 }
 
 function generateTableRow(
@@ -213,18 +161,23 @@ function generateTableRow(
   doc
     .fontSize(10)
     .text(item, 50, y)
-    // .text(description, 150, y)
+    .text(description, 150, y)
     .text(unitCost, 280, y, { width: 90, align: "right" })
     .text(quantity, 370, y, { width: 90, align: "right" })
     .text(lineTotal, 0, y, { align: "right" });
 }
 
 function generateHr(doc, y) {
-  doc.strokeColor("#aaaaaa").lineWidth(1).moveTo(50, y).lineTo(550, y).stroke();
+  doc
+    .strokeColor("#aaaaaa")
+    .lineWidth(1)
+    .moveTo(50, y)
+    .lineTo(550, y)
+    .stroke();
 }
 
 function formatCurrency(cents) {
-  return "INR " + cents;
+  return "$" + (cents / 100).toFixed(2);
 }
 
 function formatDate(date) {
@@ -232,12 +185,9 @@ function formatDate(date) {
   const month = date.getMonth() + 1;
   const year = date.getFullYear();
 
-  return day + " /" + month + " /" + year.toString().slice(2);
+  return year + "/" + month + "/" + day;
 }
 
-function parseDateString(dateString) {
-  const [year, month, day] = dateString.split("/").map(Number);
-  return new Date(year, month - 1, day);
-}
-
-module.exports = { getAllFCMTokens, generateInvoice, parseDateString };
+module.exports = {
+  createInvoice
+};

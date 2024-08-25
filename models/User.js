@@ -42,7 +42,7 @@ const UserSchema = new mongoose.Schema(
         default: Boolean,
       },
     ],
-    order_settlement: [],
+    lead_settlement: [],
   },
   {
     timestamps: {

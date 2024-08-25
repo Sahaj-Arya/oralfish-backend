@@ -399,7 +399,12 @@ const RedeemWallet = async (req, res) => {
   const { id } = req.body;
   // console.log(id);
   try {
-    const user = await User.findByIdAndUpdate(id, { payment_request: true });
+    const user = await User.findByIdAndUpdate(id, {
+      payment_request: true,
+      lead_settlement: [],
+    });
+    console.log(user);
+
     if (!user) {
       return res.send({
         status: "error",

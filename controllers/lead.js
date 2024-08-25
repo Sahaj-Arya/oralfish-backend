@@ -491,71 +491,68 @@ const createLead = async (req, res) => {
 };
 
 const settleLeads = async (req, res) => {
-  let updateData = req.body.data;
-  let data = { length: 0, orders: [] };
-  for (const e of updateData) {
-    let verifyOfferdoc = await Lead.findOne({
-      click_id: e?.click_id,
-      affiliate_id: e?.refferal_id,
-    });
-    let verifyOffer = verifyOfferdoc?._doc;
-    if (verifyOffer) {
-      verifyOfferdoc.isComplete = e?.status;
-      verifyOfferdoc.remarks = e?.remarks ?? "";
+  const updateData = req.body.data;
+  const data = { length: 0, leads: [] };
+  const offer_id = req.body.offer_id;
+  const offer = await Offer.findById(offer_id);
 
-      await verifyOfferdoc.save();
-      if (verifyOffer?.offer_id !== e?.offer_id)
-        return res.send({ success: false, message: "Invalid offer selected" });
-    }
-
-    const offerID = new ObjectId(e?.offer_id);
-    let offers = await Offer.findOne({ _id: offerID });
-
-    if (!offers?._doc?._id) {
-      break;
-    }
-
-    let user = await User.findOne({ referral_id: e?.refferal_id });
-
-    let orderDetails = {
-      amount: Number(offers?._doc?.mobile_data?.earning),
-      status: e?.status,
-      settled: false,
-      offer_id: offerID,
-      referral_id: e?.refferal_id,
-      click_id: e?.click_id,
-      created: Date.now(),
-      updated: Date.now(),
-      user_id: new ObjectId(user?._id),
-      lead_id: new ObjectId(verifyOffer?._id),
-    };
-
-    const findOrder = await Orders.findOne({
-      click_id: e?.click_id,
-      referral_id: e?.refferal_id,
-      // settled: false,
-    });
-
-    if (e?.status === "approved" && !findOrder?._doc?._id) {
-      let order = await Orders.create(orderDetails);
-      data.orders.push(order);
-      data.length++;
-      user.wallet = +user?.wallet + order?.amount;
-      user.order_settlement = [...user?.order_settlement, order?._id];
-      await user.save();
-    }
-  }
-  if (data.length === 0) {
+  if (!offer?._id) {
     return res.send({
-      message: "No order created",
-      success: true,
+      message: "Invalid Offer",
+      success: false,
     });
   }
-  return res.send({
-    message: `${data?.length} orders created succesfully`,
-    color: "green",
-    success: true,
-  });
+
+  try {
+    for (const e of updateData) {
+      const { click_id, refferal_id, status, remarks } = e;
+
+      const lead = await Lead.findOne({
+        click_id,
+        affiliate_id: refferal_id,
+      });
+
+      if (
+        lead?._doc?._id &&
+        lead?._doc?.isComplete !== "approved" &&
+        status !== "rejected" &&
+        lead?._doc?.status !== "settled" &&
+        offer_id === lead?._doc?.offer_id
+      ) {
+        const user = await User.findOne({ referral_id: refferal_id });
+
+        lead.isComplete = status;
+        lead.remarks = remarks || "";
+        user.lead_settlement.push(lead?._doc?._id);
+        user.wallet = `${
+          Number(user?._doc?.wallet) + Number(offer?._doc?.mobile_data?.earning)
+        }`;
+
+        // console.log(user, lead);
+
+        data.leads.push(lead?._doc);
+        data.length++;
+
+        await lead.save();
+        await user.save();
+      }
+    }
+
+    return res.send({
+      message:
+        data.length > 0
+          ? `${data.length} lead(s) settled successfully`
+          : "No lead updated",
+      success: true,
+      color: data.length > 0 ? "green" : "red",
+    });
+  } catch (error) {
+    return res.send({
+      error,
+      message: "Failed",
+      success: false,
+    });
+  }
 };
 
 const getSelectedLeads = async (req, res) => {
@@ -591,6 +588,83 @@ const getSelectedLeads = async (req, res) => {
   }
 };
 
+const getSelectedLeadsById = async (req, res) => {
+  console.log("l");
+
+  try {
+    const { ids } = req.body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res
+        .status(400)
+        .send({ success: false, message: "Invalid or empty array of IDs" });
+    }
+
+    const objectIds = ids.map((id) => new ObjectId(id));
+    const result = await Lead.aggregate([
+      {
+        $match: { _id: { $in: objectIds } },
+      },
+      {
+        $addFields: {
+          user_id_obj: { $toObjectId: "$user_id" },
+          offer_id_obj: { $toObjectId: "$offer_id" },
+        },
+      },
+      {
+        $lookup: {
+          from: "offers",
+          localField: "offer_id_obj",
+          foreignField: "_id",
+          as: "offer_details",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "user_id_obj",
+          foreignField: "_id",
+          as: "user_details",
+        },
+      },
+      {
+        $unwind: {
+          path: "$user_details",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: "$offer_details",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          user_id_obj: 0,
+          offer_id_obj: 0,
+        },
+      },
+    ]);
+    if (!result || result.length === 0) {
+      return res
+        .status(200)
+        .send({ success: false, message: "No leads found" });
+    }
+
+    return res.send({
+      success: true,
+      message: "Leads fetched successfully",
+      data: result,
+    });
+  } catch (error) {
+    console.error("Error fetching leads:", error);
+    return res
+      .status(500)
+      .send({ success: false, message: "Internal server error" });
+  }
+};
+
 module.exports = {
   getAllLeads,
   createLead,
@@ -598,4 +672,5 @@ module.exports = {
   settleLeads,
   getSelectedLeads,
   downloadAllLeads,
+  getSelectedLeadsById,
 };
