@@ -22,19 +22,46 @@ const PaymentSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    requested: { type: Boolean, default: false },
-    user_id: { type: mongoose.Schema.Types.ObjectId, required: true },
+    invoice_no: {
+      type: String,
+      default: "",
+    },
+
+    requested: {
+      type: Boolean,
+      default: false,
+    },
+    online: {
+      type: Boolean,
+      default: false,
+    },
+    user_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+    },
+    bank: {
+      bank_name: String,
+      bank_ifsc: String,
+      account_no: String,
+      bank_passbook: String,
+      cancelled_check: String,
+      pan_image_new: String,
+      pan_no_new: String,
+      beneficiary_name: String,
+      default: Boolean,
+    },
   },
-  { strict: false }
+  {
+    strict: false,
+    timestamps: true,
+  }
 );
 
 PaymentSchema.pre("save", function (next) {
-  const currentDate = new Date();
-  this.updated_at = currentDate;
+  this.updated_at = new Date();
   if (!this.created_at) {
-    this.created_at = currentDate;
+    this.created_at = this.updated_at;
   }
-
   next();
 });
 

@@ -570,52 +570,59 @@ const getTopConverting = async (req, res) => {
 };
 
 const getBestPayout = async (req, res) => {
-  let { limit = 5 } = req.query;
-  const offer = await Offer.aggregate([
-    {
-      $match: { status: true },
-    },
-    {
-      $lookup: {
-        from: "category", // The collection to join with
-        localField: "type_id", // ObjectId field in the 'offer' collection
-        foreignField: "_id", // ObjectId _id field in the 'category' collection
-        as: "category_info", // Output array field for joined category documents
+  try {
+    const offer = await Offer.aggregate([
+      {
+        $match: { status: true },
       },
-    },
-    {
-      $unwind: {
-        path: "$category_info",
-        preserveNullAndEmptyArrays: true, // Optional: Keeps documents that do not match the lookup
+      {
+        $lookup: {
+          from: "category",
+          localField: "type_id",
+          foreignField: "_id",
+          as: "category_info",
+        },
       },
-    },
+      {
+        $unwind: {
+          path: "$category_info",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          sortKey: {
+            $cond: {
+              if: { $isNumber: { $toDouble: "$mobile_data.earning" } },
+              then: { $toDouble: "$mobile_data.earning" },
+              else: 0, // You can replace 0 with another fallback value if needed
+            },
+          },
+        },
+      },
+      {
+        $sort: {
+          sortKey: -1,
+        },
+      },
+    ]);
 
-    {
-      $addFields: {
-        sortKey: { $toDouble: "$mobile_data.earning" }, // Convert to number inline for sorting
-      },
-    },
-    {
-      $sort: {
-        sortKey: -1, // Sort by the converted number in descending order
-      },
-    },
-    {
-      $match: {
-        status: true,
-      },
-    },
-    { $limit: +limit },
-  ]);
-  if (!offer) {
-    return res.send({ success: false, message: "failed" });
+    if (offer.length === 0) {
+      return res
+        .status(404)
+        .send({ success: false, message: "No offers found" });
+    }
+
+    res.send({
+      data: offer,
+      message: "Data Fetched",
+      success: true,
+      docs: offer.length,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ success: false, message: "Server Error" });
   }
-  return res.send({
-    data: offer,
-    message: "Data Fetched",
-    success: true,
-    docs: offer?.length,
-  });
 };
 
 module.exports = {

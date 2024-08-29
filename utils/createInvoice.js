@@ -27,10 +27,7 @@ function generateHeader(doc) {
 }
 
 function generateCustomerInformation(doc, invoice) {
-  doc
-    .fillColor("#444444")
-    .fontSize(20)
-    .text("Invoice", 50, 160);
+  doc.fillColor("#444444").fontSize(20).text("Invoice", 50, 160);
 
   generateHr(doc, 185);
 
@@ -168,12 +165,7 @@ function generateTableRow(
 }
 
 function generateHr(doc, y) {
-  doc
-    .strokeColor("#aaaaaa")
-    .lineWidth(1)
-    .moveTo(50, y)
-    .lineTo(550, y)
-    .stroke();
+  doc.strokeColor("#aaaaaa").lineWidth(1).moveTo(50, y).lineTo(550, y).stroke();
 }
 
 function formatCurrency(cents) {
@@ -189,5 +181,5 @@ function formatDate(date) {
 }
 
 module.exports = {
-  createInvoice
+  createInvoice,
 };

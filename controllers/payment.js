@@ -4,6 +4,7 @@ const User = require("../models/User");
 const generateInvoiceNew = require("../utils/pdfFunctions");
 const { HttpStatusCode } = require("axios");
 const { generateOrderId } = require("../utils/specialFunctions");
+const Lead = require("../models/Lead");
 
 const createPayment = async (req, res) => {
   const { orders, total, user_id } = req.body;
@@ -48,60 +49,60 @@ const getPayments = async (req, res) => {
       sortOrder = "desc",
       search = "",
       settled = null,
+      fromDate = null,
+      toDate = null,
     } = req.query;
 
     const pageNumber = parseInt(page, 10);
     const limitNumber = parseInt(limit, 10);
+    const sortOrderValue = sortOrder === "asc" ? 1 : -1;
 
-    // Set sort order (1 for ascending, -1 for descending)
-    const sort = sortOrder === "asc" ? 1 : -1;
+    // Define match conditions for the query
+    const matchConditions = {};
 
-    // Create a search query with an optional settled filter
-    const searchQuery = {
-      ...(search && {
-        $or: [
-          { "orders.referral_id": { $regex: search, $options: "i" } },
-          { "orders.click_id": { $regex: search, $options: "i" } },
-          { "orders.offer_id": { $regex: search, $options: "i" } },
-          { user_id: { $regex: search, $options: "i" } },
-        ],
-      }),
-      ...(settled !== null && {
-        settled: settled === "true", // Convert settled string to boolean
-      }),
-    };
+    if (search) {
+      matchConditions.$or = [
+        { invoice_no: { $regex: search, $options: "i" } },
+        { "user_info.refferal_id": { $regex: search, $options: "i" } },
+        { "user_info.phone": { $regex: search, $options: "i" } },
+        { "user_info.name": { $regex: search, $options: "i" } },
+        { _id: { $regex: search, $options: "i" } },
+      ];
+    }
 
-    // Count total number of payments (before pagination)
-    const totalPayments = await Payment.countDocuments(searchQuery);
+    if (settled !== null) {
+      matchConditions.settled = settled === "true";
+    }
 
-    // Calculate the total number of pages
-    const totalPages = Math.ceil(totalPayments / limitNumber);
+    // Add date range filter if fromDate and toDate are provided
+    if (fromDate || toDate) {
+      matchConditions.created_at = {};
+      if (fromDate) {
+        matchConditions.created_at.$gte = new Date(fromDate);
+      }
+      if (toDate) {
+        matchConditions.created_at.$lte = new Date(toDate);
+      }
+    }
 
-    const payments = await Payment.aggregate([
-      // Apply the search query with settled filter
-      { $match: searchQuery },
-
-      // Unwind the orders array to process each order individually
+    const pipeline = [
       { $unwind: "$orders" },
 
-      // Perform a lookup to get the offer details for each order
       {
         $lookup: {
-          from: "offers", // The collection name where offers are stored
-          localField: "orders.offer_id", // The field in the orders array
-          foreignField: "_id", // The field in the offers collection
-          as: "orders.offerDetails", // The field to store the populated offer details
+          from: "offers",
+          localField: "orders.offer_id",
+          foreignField: "_id",
+          as: "orders.offerDetails",
         },
       },
 
-      // Convert user_id to ObjectId for the lookup
       {
         $addFields: {
           user_id_obj: { $toObjectId: "$user_id" },
         },
       },
 
-      // Perform a lookup to get the user details
       {
         $lookup: {
           from: "users",
@@ -111,14 +112,12 @@ const getPayments = async (req, res) => {
         },
       },
 
-      // Exclude the temporary user_id_obj field
       {
         $project: {
           user_id_obj: 0,
         },
       },
 
-      // Unwind the result to merge offerDetails with each order
       {
         $unwind: {
           path: "$orders.offerDetails",
@@ -126,7 +125,6 @@ const getPayments = async (req, res) => {
         },
       },
 
-      // Unwind the user_info array to include user details
       {
         $unwind: {
           path: "$user_info",
@@ -134,38 +132,67 @@ const getPayments = async (req, res) => {
         },
       },
 
-      // Group back to reconstruct the payment document with full order, offer, and user details
       {
         $group: {
           _id: "$_id",
           created_at: { $first: "$created_at" },
           updated_at: { $first: "$updated_at" },
+          invoice_no: { $first: "$invoice_no" },
           total: { $first: "$total" },
           requested: { $first: "$requested" },
           settled: { $first: "$settled" },
+          online: { $first: "$online" },
           user_id: { $first: "$user_id" },
-          user_info: { $first: "$user_info" }, // Add user details
-          orders: { $push: "$orders" }, // Rebuild orders array with full order and offer details
+          user_info: { $first: "$user_info" },
+          orders: { $push: "$orders" },
         },
       },
+      {
+        $match: Object.keys(matchConditions).length > 0 ? matchConditions : {},
+      },
+    ];
 
-      // Sort by the specified field and order
-      { $sort: { [sortBy]: sort } },
+    if (sortBy) {
+      pipeline.push({
+        $sort: { [sortBy]: sortOrderValue },
+      });
+    }
 
-      // Implement pagination by skipping and limiting the results
+    pipeline.push(
       { $skip: (pageNumber - 1) * limitNumber },
-      { $limit: limitNumber },
-    ]);
+      { $limit: limitNumber }
+    );
 
-    return res.status(200).json({
-      success: true,
+    const countPipeline = [
+      ...pipeline,
+      {
+        $count: "total",
+      },
+    ];
+
+    const countResult = await Payment.aggregate(countPipeline);
+    const payments = await Payment.aggregate(pipeline);
+
+    const totalDocuments = countResult.length > 0 ? countResult[0].total : 0;
+    const totalPages = Math.ceil(totalDocuments / limitNumber);
+    const nextPage = pageNumber < totalPages ? pageNumber + 1 : null;
+
+    if (!payments || payments.length === 0) {
+      return res
+        .status(200)
+        .send({ success: false, message: "No Payments Found" });
+    }
+
+    return res.status(200).send({
+      data: payments,
       message:
         "Payments with orders, offers, and user details fetched successfully",
-      data: payments,
+      success: true,
       pagination: {
-        total: totalPayments,
+        totalDocuments,
         totalPages,
         currentPage: pageNumber,
+        nextPage,
         limit: limitNumber,
       },
     });
@@ -174,10 +201,170 @@ const getPayments = async (req, res) => {
       "Error fetching payments with orders, offers, and user details:",
       error
     );
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
+    return res.status(500).send({ success: false, message: error.message });
+  }
+};
+
+const getPaymentMobile = async (req, res) => {
+  const { user_id } = req.body;
+  try {
+    let {
+      page = 1,
+      limit = 10,
+      sortBy = "created_at",
+      sortOrder = "desc",
+      search = "",
+      type,
+    } = req.query;
+
+    const pageNumber = parseInt(page, 10);
+    const limitNumber = parseInt(limit, 10);
+    const sortOrderValue = sortOrder === "asc" ? 1 : -1;
+
+    const matchConditions = {};
+
+    if (user_id) {
+      matchConditions.user_id = new ObjectId(user_id);
+    }
+
+    if (search) {
+      matchConditions.$or = [
+        { invoice_no: { $regex: search, $options: "i" } },
+        { user_id: { $regex: search, $options: "i" } },
+        { _id: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    if (type) {
+      if (type === "true") {
+        matchConditions.settled = true;
+      } else {
+        matchConditions.settled = false;
+      }
+    }
+
+    const pipeline = [
+      { $unwind: "$orders" },
+
+      {
+        $lookup: {
+          from: "offers",
+          localField: "orders.offer_id",
+          foreignField: "_id",
+          as: "orders.offerDetails",
+        },
+      },
+
+      {
+        $addFields: {
+          user_id_obj: { $toObjectId: "$user_id" },
+        },
+      },
+
+      {
+        $lookup: {
+          from: "users",
+          localField: "user_id_obj",
+          foreignField: "_id",
+          as: "user_info",
+        },
+      },
+
+      {
+        $project: {
+          user_id_obj: 0,
+        },
+      },
+
+      {
+        $unwind: {
+          path: "$orders.offerDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      {
+        $unwind: {
+          path: "$user_info",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      {
+        $group: {
+          _id: "$_id",
+          created_at: { $first: "$created_at" },
+          updated_at: { $first: "$updated_at" },
+          invoice_no: { $first: "$invoice_no" },
+          total: { $first: "$total" },
+          requested: { $first: "$requested" },
+          settled: { $first: "$settled" },
+          online: { $first: "$online" },
+          user_id: { $first: "$user_id" },
+          user_info: { $first: "$user_info" },
+          orders: { $push: "$orders" },
+        },
+      },
+      {
+        $match: Object.keys(matchConditions).length > 0 ? matchConditions : {},
+      },
+    ];
+
+    if (sortBy) {
+      pipeline.push({
+        $sort: { [sortBy]: sortOrderValue },
+      });
+    }
+
+    // Count total documents matching the criteria
+    const countPipeline = [
+      { $match: matchConditions },
+      {
+        $count: "totalDocuments",
+      },
+    ];
+
+    const [countResult] = await Payment.aggregate(countPipeline);
+    const totalDocuments = countResult ? countResult.totalDocuments : 0;
+
+    // Calculate total pages
+    const totalPages = Math.ceil(totalDocuments / limitNumber);
+
+    // Calculate next page
+    const nextPage = pageNumber < totalPages ? pageNumber + 1 : null;
+
+    pipeline.push(
+      { $skip: (pageNumber - 1) * limitNumber },
+      { $limit: limitNumber }
+    );
+
+    const payments = await Payment.aggregate(pipeline);
+
+    if (!payments || payments.length === 0) {
+      return res
+        .status(200)
+        .send({ success: false, message: "No Payments Found" });
+    }
+
+    return res.status(200).send({
+      data: payments,
+      message:
+        "Payments with orders, offers, and user details fetched successfully",
+      success: true,
+      pagination: {
+        totalDocuments,
+        totalPages,
+        currentPage: pageNumber,
+        nextPage,
+        limit: limitNumber,
+      },
     });
+  } catch (error) {
+    console.error(
+      "Error fetching payments with orders, offers, and user details:",
+      error
+    );
+    return res.status(500).send({ success: false, message: error.message });
   }
 };
 
@@ -194,46 +381,58 @@ const settlePaymentOffline = async (req, res) => {
       });
     }
 
-    if (payment?.settled) {
-      return res.status(404).json({
+    if (payment.settled) {
+      return res.status(400).json({
         status: false,
         message: "Payment has already been settled",
       });
     }
 
-    let user = await User.findById(payment?.user_id);
+    const user = await User.findById(payment.user_id);
 
-    let myBank = null;
-
-    if (user?.bank_details?.length === 0) {
+    if (!user || !user.bank_details || user.bank_details.length === 0) {
       return res.status(404).json({
         status: false,
-        message: "No bank provided by user",
+        message: "No bank details provided by user",
       });
     }
-    [user?.bank_details].forEach((bank) => {
-      if (bank?.default) {
-        myBank = bank;
-      }
-    });
 
-    if (!myBank) {
-      myBank = user?.bank_details[0];
-    }
+    // Find the default bank account
+    let myBank =
+      user.bank_details.find((bank) => bank.default) || user.bank_details[0];
 
-    const { _id, cancelled_check, pan_image_new, ...rest } = myBank?._doc;
+    // Settle each order and update the corresponding lead status
+    await Promise.all(
+      payment.orders.map(async (order) => {
+        await Lead.findByIdAndUpdate(order._id, { status: "settled" });
+      })
+    );
+
+    // Remove sensitive fields before sending the bank details
+    const { _id, cancelled_check, pan_image_new, ...rest } = myBank;
+
+    payment.online = true;
+    payment.settled = true;
+    payment.bank = myBank;
+
+    await payment.save();
 
     const details = {
       ...rest,
-      order_id: payment?._id,
-      total: payment?.total,
+      order_id: payment._id,
+      total: payment.total,
     };
 
-    return res.status(200).json({ details, message: "", status: true });
-  } catch (err) {
     return res
-      .status(404)
-      .json({ error: err.message, status: false, message: "Error" });
+      .status(200)
+      .json({ details, message: "Payment settled successfully", status: true });
+  } catch (err) {
+    console.error("Error settling payment offline:", err);
+    return res.status(500).json({
+      error: err.message,
+      status: false,
+      message: "Internal server error",
+    });
   }
 };
 
@@ -249,4 +448,5 @@ module.exports = {
   getPaymentPdf,
   settlePaymentOffline,
   settlePaymentOnline,
+  getPaymentMobile,
 };
