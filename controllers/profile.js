@@ -68,7 +68,7 @@ const getAllProfiles = async (req, res) => {
     // }
 
     const matchConditions = [];
-    console.log(req.query.type);
+    // console.log(req.query.type);
     if (search && type) {
       matchConditions.push({
         $or: [
@@ -403,7 +403,7 @@ const RedeemWallet = async (req, res) => {
       payment_request: true,
       lead_settlement: [],
     });
-    console.log(user);
+    // console.log(user);
 
     if (!user) {
       return res.send({

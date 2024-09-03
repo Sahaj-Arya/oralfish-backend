@@ -11,11 +11,11 @@ const createPayment = async (req, res) => {
   const order_id = generateOrderId();
 
   try {
-    const payment = new Payment({
+    const payment = await Payment.create({
       orders,
       total,
       user_id,
-      order_id,
+      invoice_no: order_id,
     });
 
     const user = await User.findOne({ _id: new ObjectId(user_id) });
@@ -24,7 +24,6 @@ const createPayment = async (req, res) => {
     user.wallet = "0";
 
     await user.save();
-    await payment.save();
 
     return res.status(201).json({
       success: true,
@@ -51,6 +50,7 @@ const getPayments = async (req, res) => {
       settled = null,
       fromDate = null,
       toDate = null,
+      type = false,
     } = req.query;
 
     const pageNumber = parseInt(page, 10);
@@ -73,7 +73,19 @@ const getPayments = async (req, res) => {
     if (settled !== null) {
       matchConditions.settled = settled === "true";
     }
-
+    if (type) {
+      if (type === "Redeem Request Setted") {
+        matchConditions.settled = true;
+        matchConditions.requested = true;
+      } else if (type === "Redeem Request") {
+        matchConditions.settled = false;
+        matchConditions.requested = true;
+      } else if (type === "Settled") {
+        matchConditions.settled = true;
+      } else if (type === "Pending") {
+        matchConditions.settled = false;
+      }
+    }
     // Add date range filter if fromDate and toDate are provided
     if (fromDate || toDate) {
       matchConditions.created_at = {};
@@ -152,6 +164,21 @@ const getPayments = async (req, res) => {
       },
     ];
 
+    // Get total count before applying pagination
+    const totalDocumentsPipeline = [
+      ...pipeline,
+      {
+        $count: "total",
+      },
+    ];
+
+    const totalDocumentsResult = await Payment.aggregate(
+      totalDocumentsPipeline
+    );
+    const totalDocuments =
+      totalDocumentsResult.length > 0 ? totalDocumentsResult[0].total : 0;
+
+    // Apply sorting, skipping, and limiting after counting total documents
     if (sortBy) {
       pipeline.push({
         $sort: { [sortBy]: sortOrderValue },
@@ -163,17 +190,8 @@ const getPayments = async (req, res) => {
       { $limit: limitNumber }
     );
 
-    const countPipeline = [
-      ...pipeline,
-      {
-        $count: "total",
-      },
-    ];
-
-    const countResult = await Payment.aggregate(countPipeline);
     const payments = await Payment.aggregate(pipeline);
 
-    const totalDocuments = countResult.length > 0 ? countResult[0].total : 0;
     const totalPages = Math.ceil(totalDocuments / limitNumber);
     const nextPage = pageNumber < totalPages ? pageNumber + 1 : null;
 
@@ -210,15 +228,15 @@ const getPaymentMobile = async (req, res) => {
   try {
     let {
       page = 1,
-      limit = 10,
-      sortBy = "created_at",
+      limit,
+      sortBy = "updated_at",
       sortOrder = "desc",
       search = "",
       type,
     } = req.query;
 
     const pageNumber = parseInt(page, 10);
-    const limitNumber = parseInt(limit, 10);
+    const limitNumber = limit ? parseInt(limit, 10) : null;
     const sortOrderValue = sortOrder === "asc" ? 1 : -1;
 
     const matchConditions = {};
@@ -236,12 +254,11 @@ const getPaymentMobile = async (req, res) => {
     }
 
     if (type) {
-      if (type === "true") {
-        matchConditions.settled = true;
-      } else {
-        matchConditions.settled = false;
-      }
+      matchConditions.settled = type === "true";
     }
+
+    // Count total documents in the collection
+    const totalDocumentsInCollection = await Payment.countDocuments();
 
     const pipeline = [
       { $unwind: "$orders" },
@@ -328,15 +345,21 @@ const getPaymentMobile = async (req, res) => {
     const totalDocuments = countResult ? countResult.totalDocuments : 0;
 
     // Calculate total pages
-    const totalPages = Math.ceil(totalDocuments / limitNumber);
+    const totalPages = limitNumber
+      ? Math.ceil(totalDocuments / limitNumber)
+      : 1;
 
     // Calculate next page
-    const nextPage = pageNumber < totalPages ? pageNumber + 1 : null;
+    const nextPage =
+      limitNumber && pageNumber < totalPages ? pageNumber + 1 : null;
 
-    pipeline.push(
-      { $skip: (pageNumber - 1) * limitNumber },
-      { $limit: limitNumber }
-    );
+    pipeline.push({
+      $skip: (pageNumber - 1) * (limitNumber || totalDocuments),
+    });
+
+    if (limitNumber) {
+      pipeline.push({ $limit: limitNumber });
+    }
 
     const payments = await Payment.aggregate(pipeline);
 
@@ -353,10 +376,11 @@ const getPaymentMobile = async (req, res) => {
       success: true,
       pagination: {
         totalDocuments,
+        totalDocumentsInCollection, // Total number of documents in the collection
         totalPages,
         currentPage: pageNumber,
         nextPage,
-        limit: limitNumber,
+        limit: limitNumber || totalDocuments,
       },
     });
   } catch (error) {
@@ -435,6 +459,92 @@ const settlePaymentOffline = async (req, res) => {
     });
   }
 };
+const settleBulkPaymentsOffline = async (req, res) => {
+  const { paymentIds } = req.body;
+  // console.log(paymentIds);
+
+  try {
+    const payments = await Payment.find({ _id: { $in: paymentIds } });
+
+    const results = [];
+
+    if (!payments.length) {
+      results.push({
+        status: false,
+        message: "No valid payments found",
+      });
+    } else {
+      await Promise.all(
+        payments.map(async (payment) => {
+          const { orders, ...rest } = payment._doc;
+          let result = {
+            details: {},
+            status: false,
+            message: "",
+          };
+
+          if (payment.settled) {
+            result.message = "Payment has already been settled";
+            result.status = false;
+            return;
+          } else {
+            const user = await User.findById(payment.user_id);
+
+            if (!user || !user.bank_details || user.bank_details.length === 0) {
+              result.message = "No bank details provided by user";
+            } else {
+              let myBank =
+                user.bank_details.find((bank) => bank.default) ||
+                user.bank_details[0];
+
+              await Promise.all(
+                payment.orders.map(async (order) => {
+                  await Lead.findByIdAndUpdate(order._id, {
+                    status: "settled",
+                  });
+                })
+              );
+
+              const { _id, cancelled_check, pan_image_new, ...rest } =
+                myBank?._doc;
+
+              payment.online = true;
+              payment.settled = true;
+              payment.bank = myBank;
+
+              await payment.save();
+
+              const details = {
+                ...rest,
+                invoice_no: payment.invoice_no,
+                id: payment._id,
+                total: payment.total,
+              };
+              result.details = details;
+              result.status = true;
+              result.message = "Payment settled successfully";
+            }
+          }
+
+          results.push(result);
+        })
+      );
+    }
+
+    return res.status(200).json({
+      status: true,
+      results,
+      message: "Bulk payments processed",
+    });
+  } catch (err) {
+    console.error("Error settling bulk payments offline:", err);
+    return res.status(500).json({
+      error: err.message,
+      status: false,
+      message: "Internal server error",
+    });
+  }
+};
 
 const settlePaymentOnline = async (req, res) => {};
 
@@ -449,4 +559,5 @@ module.exports = {
   settlePaymentOffline,
   settlePaymentOnline,
   getPaymentMobile,
+  settleBulkPaymentsOffline,
 };

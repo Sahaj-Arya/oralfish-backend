@@ -26,6 +26,10 @@ const PaymentSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    pdf: {
+      type: String,
+      default: "",
+    },
 
     requested: {
       type: Boolean,
