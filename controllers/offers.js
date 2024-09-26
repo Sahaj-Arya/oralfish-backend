@@ -24,7 +24,7 @@ const getAllOffers = async (req, res) => {
     // Define the sort object dynamically
     let sortOptions = {};
     if (sortField === "date") {
-      sortOptions = { $sort: { created: sortOrderValue } };
+      sortOptions = { $sort: { created_at: sortOrderValue } };
     } else if (sortField === "price") {
       sortOptions = {
         $sort: { "mobile_data.earning_numeric": sortOrderValue },
@@ -324,14 +324,21 @@ const getOfferById = async (req, res) => {
       status = true,
     } = req.query;
 
-    const sortOrderValue = sortOrder === "asc" ? 1 : -1;
+    const sortOrderValue =
+      sortField === "date"
+        ? sortOrder === "asc"
+          ? -1
+          : 1
+        : sortOrder === "asc"
+        ? 1
+        : -1;
 
     const limitValue = parseInt(limit, 10);
     const skipValue = (parseInt(page, 10) - 1) * limitValue;
 
     let sortOptions = {};
     if (sortField === "date") {
-      sortOptions = { created: sortOrderValue };
+      sortOptions = { created_at: sortOrderValue };
     } else if (sortField === "price") {
       sortOptions = { "mobile_data.earning_numeric": sortOrderValue };
     }

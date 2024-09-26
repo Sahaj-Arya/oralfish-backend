@@ -17,6 +17,7 @@ const bannerRouter = require("./routes/banner");
 const bankRouter = require("./routes/bank");
 const leadRouter = require("./routes/lead");
 const templateRouter = require("./routes/template");
+const tutorialRouter = require("./routes/tutorials");
 const paymentRouter = require("./routes/payment");
 
 const { PORT, MONGO_URI } = process.env;
@@ -33,6 +34,9 @@ app.use(cors());
 
 app.get("/", (req, res) => {
   res.send("<h1>Hello Express!</h1>");
+});
+app.get("/api/v1/check", (req, res) => {
+  res.status(200).json({ message: "Internet connected", status: true });
 });
 
 app.use("/image", express.static("../rojgarData/images"));
@@ -51,6 +55,7 @@ app.use("/api/v1/banner", bannerRouter);
 app.use("/api/v1/bank", bankRouter);
 app.use("/api/v1/lead", leadRouter);
 app.use("/api/v1/template", templateRouter);
+app.use("/api/v1/tutorial", tutorialRouter);
 app.use("/image", imageRouter);
 
 app.use(notFoundMiddleware);

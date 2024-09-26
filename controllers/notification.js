@@ -29,15 +29,22 @@ admin.initializeApp({
 });
 
 const sendNotification = async (data) => {
-  const { tokens = [], title, image, route, route_id } = data;
+  const {
+    tokens = [],
+    title,
+    image,
+    route = "Home",
+    route_id = "",
+    user_id = "",
+  } = data;
   let body = data?.message;
   await Notification.create({
     title,
     body,
     image,
-    user_id: "",
-    route_id: route_id ? route_id : "",
-    route: route ? route : "Home",
+    user_id,
+    route_id,
+    route,
   });
 
   if (tokens.length < 1 || !title || !body) {

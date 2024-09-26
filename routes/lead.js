@@ -8,6 +8,7 @@ const {
   getSelectedLeads,
   downloadAllLeads,
   getSelectedLeadsById,
+  rejectLead,
 } = require("../controllers/lead");
 
 const router = express.Router();
@@ -17,6 +18,7 @@ router.route("/download-all-leads").get(downloadAllLeads);
 router.route("/create-lead").post(createLead);
 router.route("/get-leads-by-id").post(getLeadsById);
 router.route("/settle-leads").post(settleLeads);
+router.route("/reject-lead").post(rejectLead);
 router.route("/get-selected-leads").post(getSelectedLeads);
 router.route("/get-selected-leads-by-id").post(getSelectedLeadsById);
 

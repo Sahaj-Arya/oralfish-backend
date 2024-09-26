@@ -28,6 +28,8 @@ const getAllLeads = async (req, res) => {
         { name: { $regex: search, $options: "i" } },
         { email: { $regex: search, $options: "i" } },
         { phone: { $regex: search, $options: "i" } },
+        { click_id: { $regex: search, $options: "i" } },
+        { affiliate_id: { $regex: search, $options: "i" } },
         { "offer_info.mobile_data.title": { $regex: search, $options: "i" } },
       ];
     }
@@ -354,11 +356,7 @@ const getLeadsById = async (req, res) => {
           break;
         case "3":
           matchConditions.push({
-            $or: [
-              { isComplete: "" },
-              { isComplete: "rejected" },
-              { isComplete: "pending" },
-            ],
+            $or: [{ isComplete: "" }, { isComplete: "pending" }],
             status: "",
           });
           break;
@@ -366,6 +364,9 @@ const getLeadsById = async (req, res) => {
           matchConditions.push({
             status: "settled",
           });
+          break;
+        case "5":
+          matchConditions.push({ isComplete: "rejected", status: "" });
           break;
         default:
           break;
@@ -490,10 +491,31 @@ const createLead = async (req, res) => {
   });
 };
 
+const rejectLead = async (req, res) => {
+  const { id, status } = req.body;
+  // console.log(req.body);
+
+  try {
+    const lead = await Lead.findByIdAndUpdate(id, { isComplete: status });
+    return res.send({
+      data: lead,
+      success: true,
+    });
+  } catch (error) {
+    return res.send({
+      error,
+      message: "Failed",
+      success: false,
+    });
+  }
+};
+
 const settleLeads = async (req, res) => {
   const updateData = req.body.data;
+
   const data = { length: 0, leads: [] };
   const offer_id = req.body.offer_id;
+
   const offer = await Offer.findById(offer_id);
 
   if (!offer?._id) {
@@ -505,30 +527,46 @@ const settleLeads = async (req, res) => {
 
   try {
     for (const e of updateData) {
-      const { click_id, refferal_id, status, remarks } = e;
+      const { click_id, refferal_id, status, remarks = "" } = e;
 
       const lead = await Lead.findOne({
         click_id,
         affiliate_id: refferal_id,
       });
 
-      if (
-        lead?._doc?._id &&
-        lead?._doc?.isComplete !== "approved" &&
-        status !== "rejected" &&
-        lead?._doc?.status !== "settled" &&
+      if (offer_id !== lead?._doc?.offer_id) {
+        return res.send({
+          message: "Invalid Offer",
+          success: false,
+        });
+      }
+
+      if (status === "pending") {
+        lead.isComplete = "pending";
+        lead.remarks = remarks;
+        await lead.save();
+      } else if (status === "rejected") {
+        lead.isComplete = "rejected";
+        lead.remarks = remarks;
+        await lead.save();
+      } else if (
+        // lead?._doc?.isComplete !== "approved" &&
+        status === "approved" &&
+        // lead?._doc?.status !== "settled" &&
         offer_id === lead?._doc?.offer_id
       ) {
         const user = await User.findOne({ referral_id: refferal_id });
+        if (!user) {
+          continue;
+        }
 
         lead.isComplete = status;
-        lead.remarks = remarks || "";
+        lead.remarks = remarks;
         user.lead_settlement.push(lead?._doc?._id);
         user.wallet = `${
-          Number(user?._doc?.wallet) + Number(offer?._doc?.mobile_data?.earning)
+          Number(user?._doc?.wallet || 0) +
+          Number(offer?._doc?.mobile_data?.earning)
         }`;
-
-        // console.log(user, lead);
 
         data.leads.push(lead?._doc);
         data.length++;
@@ -589,8 +627,6 @@ const getSelectedLeads = async (req, res) => {
 };
 
 const getSelectedLeadsById = async (req, res) => {
-  console.log("l");
-
   try {
     const { ids } = req.body;
 
@@ -673,4 +709,5 @@ module.exports = {
   getSelectedLeads,
   downloadAllLeads,
   getSelectedLeadsById,
+  rejectLead,
 };

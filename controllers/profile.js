@@ -193,9 +193,7 @@ const updateProfile = async (req, res) => {
       }
     });
   }
-  // console.log("====================================");
-  // console.log(obj);
-  // console.log("====================================");
+
   if (step_done == 4) {
     const user = await User.findOne({ phone: req.body.phone });
     let bank_details = [...user?.bank_details, obj];
@@ -223,62 +221,123 @@ const updateProfile = async (req, res) => {
   }
 };
 
+const updateNameEmail = async (req, res) => {
+  if (!req.body.phone) {
+    return res.status(404).send("User Not found");
+  }
+  await User.findOneAndUpdate(
+    { phone: req.body.phone },
+    { email: req.body.email, name: req.body.name }
+  )
+    .then((result) => {
+      res.status(200).send({
+        message: "User updated successfully",
+        status: true,
+        data: result,
+      });
+    })
+    .catch((err) => {
+      res.status(404).send({ message: "Failed to update", status: false });
+    });
+};
+
 const updateBank = async (req, res) => {
   try {
     const { id, _id, remove, ...rest } = req.body;
 
+    // Validate user ID
     if (!id) {
-      return res.status(400).send("Invalid data: no id");
+      return res.status(400).send("Invalid data: no user id provided");
     }
 
+    // Fetch the user by ID
     const user = await User.findById(id);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    let added_bank = {};
+    // Prepare the update query
+    let updateQuery = {};
+    let options = { new: true }; // Return the updated document
 
+    // If no _id is provided, add a new bank detail
     if (!_id) {
-      if (user?.bank_details?.length === 0) {
-        added_bank = { ...rest, default: true };
+      const newBank = { ...rest };
 
-        user.bank_details = Array.from(new Set([...added_bank]));
-      } else {
-        added_bank = { ...rest };
-        user.bank_details = Array.from(
-          new Set([user.bank_details, ...added_bank])
-        );
+      // Mark the first added bank as default if none exists
+      if (user.bank_details.length === 0) {
+        newBank.default = true;
       }
-    } else if (remove && _id) {
-      user.bank_details = user.bank_details.filter(
-        (item) => item._id.toString() !== _id.toString()
+
+      // Use $push to add the new bank detail
+      updateQuery = { $push: { bank_details: newBank } };
+    }
+    // If remove is true and _id is provided, remove the bank detail by _id
+    else if (remove && _id) {
+      // Use $pull to remove the bank detail from the array
+      updateQuery = { $pull: { bank_details: { _id } } };
+    }
+    // Otherwise, update an existing bank detail by _id
+    else if (_id) {
+      // Find the existing bank detail with the provided _id
+      const bankToUpdate = user.bank_details.find(
+        (bank) => bank._id.toString() === _id
       );
-    } else if (_id) {
-      user.bank_details = user.bank_details.map((bank) => {
-        if (bank._id.toString() === _id) {
-          return {
-            cancelled_check: rest.cancelled_check || bank.cancelled_check,
-            pan_image_new: rest.pan_image_new || bank.pan_image_new,
-            beneficiary_name: rest.beneficiary_name || bank.beneficiary_name,
-            account_no: rest.account_no || bank.account_no,
-            bank_ifsc: rest.bank_ifsc || bank.bank_ifsc,
-            bank_name: rest.bank_name || bank.bank_name,
-            pan_no_new: rest.pan_no_new || bank.pan_no_new,
-          };
+
+      if (!bankToUpdate) {
+        return res.status(404).json({ message: "Bank detail not found" });
+      }
+
+      // Check if any field is actually different before updating
+      const fieldsToUpdate = {};
+      let hasChanges = false;
+
+      for (const key in rest) {
+        if (rest[key] !== bankToUpdate[key]) {
+          fieldsToUpdate[`bank_details.$[bank].${key}`] = rest[key];
+          hasChanges = true;
         }
+      }
 
-        return bank;
-      });
-    }
-    user.isProfileVerified = false;
-    if (user.profile_status !== "rejected") {
-      user.profile_status = "updated";
+      // If no changes, skip the update
+      if (!hasChanges) {
+        return res.status(200).json({ message: "No changes detected", user });
+      }
+
+      // Use $set to update the specific fields of the matching bank detail
+      updateQuery = {
+        $set: fieldsToUpdate,
+      };
+
+      // Use arrayFilters to target the correct bank detail based on _id
+      options.arrayFilters = [{ "bank._id": _id }];
     }
 
-    await user.save();
+    // Also update the profile verification and status
+    updateQuery.$set = {
+      ...updateQuery.$set, // Keep the existing $set fields
+      isProfileVerified: false,
+      profile_status:
+        user.profile_status !== "rejected" ? "updated" : user.profile_status,
+    };
+
+    // Perform the update operation on the user document
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: id },
+      updateQuery,
+      options
+    );
+
+    if (!updatedUser) {
+      return res
+        .status(404)
+        .json({ message: "User not found or no changes made" });
+    }
+
+    // Return the updated user document
     return res
       .status(200)
-      .json({ message: "Bank detail updated successfully", user });
+      .json({ message: "Bank detail updated successfully", user: updatedUser });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });
@@ -322,6 +381,7 @@ const setDefaultBank = async (req, res) => {
 
 const ApproveProfile = async (req, res) => {
   const { id, value } = req.body;
+  console.log(req.body);
 
   let isProfileVerified = false;
   if (value === "approved") {
@@ -446,4 +506,5 @@ module.exports = {
   setDefaultBank,
   ApproveProfile,
   RedeemWallet,
+  updateNameEmail,
 };
