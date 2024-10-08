@@ -121,6 +121,20 @@ const getAllOffersWeb = async (req, res) => {
   }
   return res.send({ data: offer_doc, message: "Data Fetched", success: true });
 };
+
+const getEarnings = async (req, res) => {
+  // console.log("fgf", req.body);
+
+  try {
+    const offer = await Offer.findOne({ _id: new ObjectId(req.body.id) });
+    return res
+      .status(200)
+      .send({ success: true, earning: offer?._doc?.mobile_data?.earning });
+  } catch (error) {
+    return res.status(500).send({ success: false, message: error.message });
+  }
+};
+
 const getSelectedOffersWeb = async (req, res) => {
   try {
     const id = new ObjectId(req.body.id);
@@ -648,4 +662,5 @@ module.exports = {
   getTopConverting,
   getBestPayout,
   updateIfConverting,
+  getEarnings,
 };

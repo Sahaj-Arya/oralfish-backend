@@ -16,6 +16,7 @@ const {
   getTopConverting,
   getBestPayout,
   updateIfConverting,
+  getEarnings,
 } = require("../controllers/offers");
 const { upload } = require("../utils/storageUtil");
 
@@ -30,6 +31,7 @@ router.route("/update-offer").post(updateOffer);
 router.route("/update-offer-rank").post(updateRank);
 router.route("/get-offer-web").post(getOfferWeb);
 router.route("/get-offer-by-id").post(getOfferById);
+router.route("/get-offer-earning").post(getEarnings);
 router.route("/delete-offer").post(deleteOffer);
 router.route("/update-featured").post(updateIfFeatured);
 router.route("/update-converting").post(updateIfConverting);

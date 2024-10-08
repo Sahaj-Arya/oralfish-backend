@@ -1,6 +1,5 @@
 const { StatusCodes } = require("http-status-codes");
-const Template = require("../models/Template");
-const Tutorials = require("../models/tutorials");
+const Tutorial = require("../models/Tutorial");
 
 const getAllTutorials = async (req, res) => {
   try {
@@ -25,13 +24,13 @@ const getAllTutorials = async (req, res) => {
       ],
     };
 
-    const tutorials = await Tutorials.find(searchQuery)
+    const tutorials = await Tutorial.find(searchQuery)
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .sort({ [sortField]: sortOrder === "desc" ? -1 : 1 })
       .exec();
 
-    const total = await Tutorials.countDocuments(searchQuery);
+    const total = await Tutorial.countDocuments(searchQuery);
 
     if (!tutorials || tutorials.length === 0) {
       return res.status(400).json({
@@ -58,18 +57,20 @@ const getAllTutorials = async (req, res) => {
 };
 
 const createTutorial = async (req, res) => {
-  const { status = true, rank = 1, title, video } = req.body;
+  const { status = true, rank = 1, title, video, subject = "",type="" } = req.body;
   if (!title && !video) {
     res
       .status(StatusCodes.BAD_REQUEST)
       .json({ message: "Missing details", status: false });
   }
 
-  const tutorials = await Tutorials.create({
+  const tutorials = await Tutorial.create({
     status,
     rank,
     title,
     video,
+    subject,
+    type
   });
 
   if (!tutorials) {
@@ -89,7 +90,7 @@ const createTutorial = async (req, res) => {
 const updateTutorial = async (req, res) => {
   const { id, ...rest } = req.body;
 
-  const tutorial = await Tutorials.findByIdAndUpdate(id, { ...rest });
+  const tutorial = await Tutorial.findByIdAndUpdate(id, { ...rest });
 
   if (!tutorial) {
     return res.status(400).json({
@@ -109,7 +110,7 @@ const updateTutorial = async (req, res) => {
 const deleteTutorial = async (req, res) => {
   const { id } = req.body;
 
-  const tutorial = await Tutorials.findByIdAndDelete(id);
+  const tutorial = await Tutorial.findByIdAndDelete(id);
 
   if (!tutorial) {
     return res.status(400).json({

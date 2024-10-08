@@ -544,15 +544,19 @@ const settleLeads = async (req, res) => {
       if (status === "pending") {
         lead.isComplete = "pending";
         lead.remarks = remarks;
+        // console.log(remarks, "pending");
+
         await lead.save();
       } else if (status === "rejected") {
         lead.isComplete = "rejected";
         lead.remarks = remarks;
+        // console.log(remarks, "rejected");
+
         await lead.save();
       } else if (
-        // lead?._doc?.isComplete !== "approved" &&
+        lead?._doc?.isComplete !== "approved" &&
         status === "approved" &&
-        // lead?._doc?.status !== "settled" &&
+        lead?._doc?.status !== "settled" &&
         offer_id === lead?._doc?.offer_id
       ) {
         const user = await User.findOne({ referral_id: refferal_id });

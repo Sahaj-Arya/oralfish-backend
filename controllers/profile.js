@@ -155,6 +155,73 @@ const getAllProfiles = async (req, res) => {
   }
 };
 
+const getAllWebProfiles = async (req, res) => {
+  try {
+    const { limit = 10, page = 1, search = "" } = req.query;
+
+    const limitValue = parseInt(limit, 10);
+    const skipValue = (parseInt(page, 10) - 1) * limitValue;
+
+    const matchConditions = [];
+    console.log(req.query.type);
+
+    if (search) {
+      matchConditions.push({
+        $or: [
+          { name: { $regex: search, $options: "i" } },
+          { email: { $regex: search, $options: "i" } },
+          { phone: { $regex: search, $options: "i" } },
+        ],
+      });
+    }
+
+    const matchQuery =
+      matchConditions.length > 0 ? { $and: matchConditions } : {};
+
+    const users = await WebUsers.find(matchQuery)
+      .skip(skipValue)
+      .limit(limitValue);
+
+    const totalDocuments = await User.countDocuments(matchQuery);
+    const totalPages = Math.ceil(totalDocuments / limitValue);
+
+    if (!users || users.length === 0) {
+      return res.status(200).send({
+        success: false,
+        message: "No users found",
+      });
+    }
+
+    const nextPage =
+      parseInt(page, 10) < totalPages ? parseInt(page, 10) + 1 : null;
+
+    return res.send({
+      status: "success",
+      message: "Operation completed successfully",
+      data: users,
+      pagination: {
+        totalDocuments,
+        totalPages,
+        currentPage: parseInt(page, 10),
+        nextPage,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+
+    return res.send({
+      status: "error",
+      errors: [
+        {
+          message: error.message || "An error occurred",
+          code: 500,
+        },
+      ],
+      message: "Operation failed",
+    });
+  }
+};
+
 const getProfileWeb = async (req, res) => {
   // console.log(req.user, "user");
   const id = req.body.id;
@@ -507,4 +574,5 @@ module.exports = {
   ApproveProfile,
   RedeemWallet,
   updateNameEmail,
+  getAllWebProfiles,
 };

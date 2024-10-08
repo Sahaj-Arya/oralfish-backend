@@ -31,38 +31,56 @@ const checkCode = async () => {
 
 // Register/Signup
 const register = async (req, res) => {
-  const { name, email, password } = req.body;
+  try {
+    const { name, email, pass, phone, access } = req.body;
 
-  const existingUser = await WebUsers.findOne({ email });
-
-  if (existingUser) {
-    return res.status(401).json({ message: "User exists", success: false });
-  }
-
-  const salt = await bcrypt.genSalt(10);
-  const encryptedPassword = await bcrypt.hash(password, salt);
-
-  const user = await WebUsers.create({
-    name,
-    email,
-    password: encryptedPassword,
-  });
-
-  const token = jwt.sign(
-    { email: email, id: user._id },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: "30d",
+    if (!name || !email || !pass || !phone) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        message: "All fields are required",
+        success: false,
+      });
     }
-  );
 
-  user.token = token;
-  await user.save();
+    const existingUser = await WebUsers.findOne({ email, phone });
+    if (existingUser) {
+      existingUser.name = name;
+      existingUser.phone = phone;
+      existingUser.access = access;
+      existingUser.password = pass;
 
-  res.status(StatusCodes.CREATED).json({
-    message: "User registered successfully",
-    success: true,
-  });
+      existingUser.save();
+
+      return res.status(StatusCodes.CREATED).json({
+        message: "User updated successfully",
+        success: true,
+        token: existingUser,
+      });
+    } else {
+      const user = await WebUsers.create({
+        name,
+        email,
+        password: pass,
+        phone,
+        access,
+        token: jwt.sign({ email, phone }, process.env.JWT_SECRET, {
+          expiresIn: "30d",
+        }),
+      });
+
+      res.status(StatusCodes.CREATED).json({
+        message: "User registered successfully",
+        success: true,
+        token: user.token,
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      message: "Something went wrong during registration",
+      success: false,
+      error: error.message,
+    });
+  }
 };
 
 // To Login
@@ -76,7 +94,7 @@ const login = async (req, res) => {
       .json({ message: `No User by email ${email}` });
   }
 
-  const isValidPassword = await bcrypt.compare(password, user.password);
+  const isValidPassword = password === user.password;
 
   if (!isValidPassword) {
     return res.status(401).json({ message: "Incorrect email or password" });
@@ -121,9 +139,9 @@ const loginViaOtp = async (req, res) => {
     let msg = `RojgarApp`;
     let url = `Hello! Please use the OTP ${data} to login to the ${msg} dashboard. FMSPL`;
     let URL = `http://164.52.195.161/API/SendMsg.aspx?uname=20240015&pass=59s993An&send=FUREMA&dest=${phone}&msg=${url}`;
-    let providerOtp = axios.get(URL);
-    providerOtp.then((e) => {}).catch((err) => console.log(err));
-    // console.log(otp);
+    // let providerOtp = axios.get(URL);
+    // providerOtp.then((e) => {}).catch((err) => console.log(err));
+    console.log(otp);
   }
   // console.log(fcm_token, "k");
 
@@ -291,29 +309,53 @@ const accountDeletionRequest = async (req, res) => {
 };
 
 const deleteUser = async (req, res) => {
-  const id = req.body.id;
+  try {
+    const { id } = req.body;
+    console.log(id);
 
-  const user = await User.findById(id);
-  if (!user) {
-    return res.status(StatusCodes.NOT_FOUND).json({ message: `No user found` });
-  }
-
-  const archivedUser = new DeletedUser(user.toObject());
-  await archivedUser.save();
-
-  User.findByIdAndDelete(id)
-    .then((e) => {
-      // console.log(e, "d");
+    const user = await User.findById(id);
+    if (!user) {
       return res
-        .status(StatusCodes.GONE)
-        .json({ message: `User deleted successfully` });
-    })
-    .catch((err) => {
-      // console.log(err);
-      return res.status(StatusCodes.NOT_FOUND).json({ err });
-    });
+        .status(StatusCodes.NOT_FOUND)
+        .json({ message: `No user found` });
+    }
+
+    const archivedUser = new DeletedUser(user.toObject());
+    await archivedUser.save();
+
+    await User.findByIdAndDelete(id);
+
+    return res
+      .status(StatusCodes.CREATED)
+      .json({ message: `User deleted successfully` });
+  } catch (err) {
+    console.log(err);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ err });
+  }
 };
 
+const deleteWebUser = async (req, res) => {
+  try {
+    const { id } = req.body;
+    console.log(id);
+
+    const user = await WebUsers.findById(id);
+    if (!user) {
+      return res
+        .status(StatusCodes.NOT_FOUND)
+        .json({ message: `No user found` });
+    }
+
+    await WebUsers.findByIdAndDelete(id);
+
+    return res
+      .status(StatusCodes.CREATED)
+      .json({ message: `User deleted successfully` });
+  } catch (err) {
+    console.log(err);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ err });
+  }
+};
 module.exports = {
   register,
   login,
@@ -323,4 +365,5 @@ module.exports = {
   accountDeletionRequest,
   deleteUser,
   forgotPassword,
+  deleteWebUser,
 };

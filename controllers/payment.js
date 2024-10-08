@@ -61,15 +61,21 @@ const getPayments = async (req, res) => {
     const matchConditions = {};
 
     if (search) {
+      const objectIdCondition = ObjectId.isValid(search)
+        ? { _id: new ObjectId(search) }
+        : null;
+
       matchConditions.$or = [
         { invoice_no: { $regex: search, $options: "i" } },
         { "user_info.refferal_id": { $regex: search, $options: "i" } },
         { "user_info.phone": { $regex: search, $options: "i" } },
         { "user_info.name": { $regex: search, $options: "i" } },
-        { _id: { $regex: search, $options: "i" } },
       ];
-    }
 
+      if (objectIdCondition) {
+        matchConditions.$or.push(objectIdCondition);
+      }
+    }
     if (settled !== null) {
       matchConditions.settled = settled === "true";
     }
@@ -468,7 +474,7 @@ const settleBulkPaymentsOffline = async (req, res) => {
 
     const results = [];
 
-    if (!payments.length) {
+    if (payments.length === 0) {
       results.push({
         status: false,
         message: "No valid payments found",
@@ -489,9 +495,18 @@ const settleBulkPaymentsOffline = async (req, res) => {
             return;
           } else {
             const user = await User.findById(payment.user_id);
+            // console.log(!user?._doc.phone, !user?._doc?.bank_details);
 
-            if (!user || !user.bank_details || user.bank_details.length === 0) {
-              result.message = "No bank details provided by user";
+            if (
+              !user?._doc.phone ||
+              !user?._doc?.bank_details ||
+              user?._doc?.bank_details.length === 0
+            ) {
+              result.message =
+                "No bank details provided by user " +
+                user?.name +
+                " " +
+                user.phone;
             } else {
               let myBank =
                 user.bank_details.find((bank) => bank.default) ||

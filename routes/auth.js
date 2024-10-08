@@ -8,6 +8,7 @@ const {
   accountDeletionRequest,
   deleteUser,
   forgotPassword,
+  deleteWebUser,
 } = require("../controllers/auth");
 const verifyToken = require("../middleware/verifyToken");
 const verifyTokenWeb = require("../middleware/verifyTokenWeb");
@@ -21,6 +22,7 @@ router.post("/verify-otp", verifyOtp);
 router.post("/logout", verifyToken, logout);
 router.post("/request-account-deletion", accountDeletionRequest);
 router.post("/delete-user", deleteUser);
+router.post("/delete-web-user", deleteWebUser);
 
 module.exports = router;
 
