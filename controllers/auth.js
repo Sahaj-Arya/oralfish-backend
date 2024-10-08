@@ -32,9 +32,9 @@ const checkCode = async () => {
 // Register/Signup
 const register = async (req, res) => {
   try {
-    const { name, email, pass, phone, access } = req.body;
+    const { name, email, pass, confirm_pass, phone, access } = req.body;
 
-    if (!name || !email || !pass || !phone) {
+    if (!name || !email || !phone) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         message: "All fields are required",
         success: false,
@@ -42,11 +42,18 @@ const register = async (req, res) => {
     }
 
     const existingUser = await WebUsers.findOne({ email, phone });
+
     if (existingUser) {
-      existingUser.name = name;
-      existingUser.phone = phone;
+      if (name) {
+        existingUser.name = name;
+      }
+      if (phone) {
+        existingUser.phone = phone;
+      }
       existingUser.access = access;
-      existingUser.password = pass;
+      if (pass) {
+        existingUser.password = pass;
+      }
 
       existingUser.save();
 
@@ -56,6 +63,12 @@ const register = async (req, res) => {
         token: existingUser,
       });
     } else {
+      if (confirm_pass !== pass) {
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+          message: "Passwords don't match",
+        });
+      }
+
       const user = await WebUsers.create({
         name,
         email,
