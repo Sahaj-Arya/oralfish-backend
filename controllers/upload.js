@@ -1,8 +1,6 @@
 const { StatusCodes } = require("http-status-codes");
 
 const single = async (req, res) => {
-  // console.log(req.file);
-
   if (!req.file) {
     return res.status(StatusCodes.BAD_REQUEST).send({
       message: "Image Upload Failed?. No file Provided",

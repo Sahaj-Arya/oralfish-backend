@@ -11,6 +11,7 @@ const {
   RedeemWallet,
   updateNameEmail,
   getAllWebProfiles,
+  updateProfileWeb,
 } = require("../controllers/profile");
 const { upload } = require("../utils/storageUtil");
 
@@ -24,6 +25,7 @@ router.route("/set-default-bank").post(setDefaultBank);
 router.route("/update-user-bank").post(updateBank);
 router.route("/get-profile-web").post(verifyTokenWeb, getProfileWeb);
 router.route("/update-profile").post(upload.array("image", 10), updateProfile);
+router.route("/update-profile-web").post(updateProfileWeb);
 router.route("/set-redeem-wallet").post(RedeemWallet);
 router.route("/update-name-email").post(updateNameEmail);
 

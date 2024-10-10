@@ -288,6 +288,62 @@ const updateProfile = async (req, res) => {
   }
 };
 
+const updateProfileWeb = async (req, res) => {
+  try {
+    const userId = req.body.id;
+    const updatedData = req.body;
+
+    let user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.name = updatedData.name || user.name;
+    user.email = updatedData.email || user.email;
+    user.otp = updatedData.otp || user.otp;
+    user.profile_image = updatedData.profile_image || user.profile_image;
+    user.dob = updatedData.dob || user.dob;
+    user.gender = updatedData.gender || user.gender;
+    user.address = updatedData.address || user.address;
+    user.pan_image = updatedData.pan_image || user.pan_image;
+    user.pan_no = updatedData.pan_no || user.pan_no;
+    user.income = updatedData.income || user.income;
+    user.occupation = updatedData.occupation || user.occupation;
+    user.work_experience = updatedData.work_experience || user.work_experience;
+    user.phone = updatedData.phone || user.phone;
+    user.wallet = updatedData.wallet || user.wallet;
+
+    if (updatedData.bank_details) {
+      updatedData.bank_details.forEach((bankDetail) => {
+        const existingBankDetail = user.bank_details.id(bankDetail._id);
+        if (existingBankDetail) {
+          existingBankDetail.account_no =
+            bankDetail.account_no || existingBankDetail.account_no;
+          existingBankDetail.bank_ifsc =
+            bankDetail.bank_ifsc || existingBankDetail.bank_ifsc;
+          existingBankDetail.bank_name =
+            bankDetail.bank_name || existingBankDetail.bank_name;
+          existingBankDetail.cancelled_check =
+            bankDetail.cancelled_check || existingBankDetail.cancelled_check;
+          existingBankDetail.bank_passbook =
+            bankDetail.bank_passbook || existingBankDetail.bank_passbook;
+        }
+      });
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      message: "User profile and bank details updated successfully",
+      user,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "An error occurred", error });
+  }
+};
+
 const updateNameEmail = async (req, res) => {
   if (!req.body.phone) {
     return res.status(404).send("User Not found");
@@ -575,4 +631,5 @@ module.exports = {
   RedeemWallet,
   updateNameEmail,
   getAllWebProfiles,
+  updateProfileWeb,
 };
