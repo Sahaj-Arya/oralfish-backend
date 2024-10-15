@@ -10,11 +10,13 @@ const getAllTutorials = async (req, res) => {
       sortOrder = "desc",
       search = "",
       status = true,
+      type = "", // Type parameter
     } = req.query;
 
+    // Construct the base search query
     const searchQuery = {
       $and: [
-        { status: status === true },
+        { status: status === true }, // Ensure the status is boolean
         {
           $or: [
             { title: { $regex: search, $options: "i" } },
@@ -24,21 +26,30 @@ const getAllTutorials = async (req, res) => {
       ],
     };
 
+    // Add type filter if it's provided and not an empty string
+    if (type) {
+      searchQuery.$and.push({ type: { $regex: type, $options: "i" } });
+    }
+
+    // Fetch tutorials based on the search query, pagination, and sorting
     const tutorials = await Tutorial.find(searchQuery)
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .sort({ [sortField]: sortOrder === "desc" ? -1 : 1 })
       .exec();
 
+    // Count total number of matching tutorials
     const total = await Tutorial.countDocuments(searchQuery);
 
+    // Handle case where no tutorials are found
     if (!tutorials || tutorials.length === 0) {
-      return res.status(400).json({
+      return res.status(200).json({
         message: "No tutorials found",
-        success: false,
+        success: true,
       });
     }
 
+    // Return successful response with tutorials data
     return res.status(StatusCodes.OK).json({
       message: "Successful",
       data: tutorials,
@@ -48,6 +59,7 @@ const getAllTutorials = async (req, res) => {
       success: true,
     });
   } catch (error) {
+    // Handle server errors
     return res.status(500).json({
       message: "Server Error",
       error: error.message,
@@ -57,7 +69,14 @@ const getAllTutorials = async (req, res) => {
 };
 
 const createTutorial = async (req, res) => {
-  const { status = true, rank = 1, title, video, subject = "",type="" } = req.body;
+  const {
+    status = true,
+    rank = 1,
+    title,
+    video,
+    subject = "",
+    type = "",
+  } = req.body;
   if (!title && !video) {
     res
       .status(StatusCodes.BAD_REQUEST)
@@ -70,7 +89,7 @@ const createTutorial = async (req, res) => {
     title,
     video,
     subject,
-    type
+    type,
   });
 
   if (!tutorials) {

@@ -100,6 +100,8 @@ const register = async (req, res) => {
 const login = async (req, res) => {
   const { email, password } = req.body;
 
+
+
   const user = await WebUsers.findOne({ email });
   if (!user) {
     return res
@@ -152,9 +154,9 @@ const loginViaOtp = async (req, res) => {
     let msg = `RojgarApp`;
     let url = `Hello! Please use the OTP ${data} to login to the ${msg} dashboard. FMSPL`;
     let URL = `http://164.52.195.161/API/SendMsg.aspx?uname=20240015&pass=59s993An&send=FUREMA&dest=${phone}&msg=${url}`;
-    // let providerOtp = axios.get(URL);
-    // providerOtp.then((e) => {}).catch((err) => console.log(err));
-    console.log(otp);
+    let providerOtp = axios.get(URL);
+    providerOtp.then((e) => {}).catch((err) => console.log(err));
+    // console.log(otp);
   }
   // console.log(fcm_token, "k");
 

@@ -6,6 +6,7 @@ const DeletedData = require("../models/DeletedData");
 const { sendbulkNotificationFn } = require("./notification");
 const Template = require("../models/Template");
 
+
 const getAllOffers = async (req, res) => {
   try {
     const {
@@ -190,32 +191,121 @@ const getSelectedOffersWeb = async (req, res) => {
   }
 };
 
-const getOfferWeb = async (req, res) => {
-  const id = new ObjectId(req.body.id);
+const getOfferbyIdWeb = async (req, res) => {
+  const { id } = req.body;
 
-  const offer = await Offer.aggregate([
-    {
-      $match: { _id: id }, // Filter by ID
-    },
-    {
-      $lookup: {
-        from: "category", // The collection to join with
-        localField: "type_id", // ObjectId field in the 'offer' collection
-        foreignField: "_id", // ObjectId _id field in the 'category' collection
-        as: "category_info", // Output array field for joined category documents
-      },
-    },
-    {
-      $unwind: {
-        path: "$category_info",
-        preserveNullAndEmptyArrays: true, // Optional: Keeps documents that do not match the lookup
-      },
-    },
-  ]);
-  if (!offer) {
-    return res.send({ success: false, message: "failed" });
+  if (!id) {
+    return res.status(400).json({ success: false, message: "No ID provided" });
   }
-  return res.send({ data: offer[0], message: "Data Fetched", success: true });
+
+  try {
+    const user = await Offer.findById(id);
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "User found",
+      data: user,
+    });
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+const getOfferWeb = async (req, res) => {
+  try {
+    const {
+      limit = 10, // Default limit per page
+      page = 1, // Default page number
+      sortStatus = "desc", // Default sort for status ('desc' to show true first)
+      search = "", // Search term for title
+      status, // Status filter (optional true or false)
+    } = req.query;
+    const { offer_id } = req.body;
+    const limitValue = parseInt(limit, 10); // Convert limit to a number
+    const skipValue = (parseInt(page, 10) - 1) * limitValue; // Calculate documents to skip for pagination
+    const sortOrderValue = sortStatus === "asc" ? 1 : -1; // Set sort order based on the query
+
+    const pipeline = [
+      {
+        $match: {
+          ...(search && {
+            "mobile_data.title": { $regex: search, $options: "i" }, // Case-insensitive search by title
+          }),
+          ...(offer_id && { type_id: new ObjectId(offer_id) }), // Search by specific offer ID if provided
+          ...(status !== undefined && { status: status === "true" }), // Optionally filter by status
+        },
+      },
+      {
+        $lookup: {
+          from: "category", // Join with the category collection
+          localField: "type_id",
+          foreignField: "_id",
+          as: "category_info", // Output array field for joined category documents
+        },
+      },
+      {
+        $unwind: {
+          path: "$category_info", // Unwind the category info array
+          preserveNullAndEmptyArrays: true, // Keep documents without a category
+        },
+      },
+      {
+        $sort: { status: -1, _id: sortOrderValue }, // Sort by status (true first) and additional sorting by _id
+      },
+      {
+        $skip: skipValue, // Skip documents for pagination
+      },
+      {
+        $limit: limitValue, // Limit the number of documents per page
+      },
+    ];
+
+    // Execute the pipeline query
+    const offers = await Offer.aggregate(pipeline);
+
+    if (!offers || offers.length === 0) {
+      return res.send({ success: false, message: "No offers found" });
+    }
+
+    // Get the total count of offers matching the search and status filters
+    const totalDocuments = await Offer.countDocuments({
+      ...(search && { "mobile_data.title": { $regex: search, $options: "i" } }),
+      ...(offer_id && { type_id: new ObjectId(offer_id) }), // Count by offer ID if provided
+      ...(status !== undefined && { status: status === "true" }), // Filter by status if provided
+    });
+    const totalPages = Math.ceil(totalDocuments / limitValue); // Calculate total pages
+
+    // Determine the next page number (if applicable)
+    const nextPage =
+      parseInt(page, 10) < totalPages ? parseInt(page, 10) + 1 : null;
+
+    // Send the result
+    return res.send({
+      data: offers, // Return the list of offers
+      message: "Data Fetched",
+      success: true,
+      pagination: {
+        totalDocuments,
+        totalPages,
+        currentPage: parseInt(page, 10),
+        nextPage,
+      },
+    });
+  } catch (err) {
+    return res.status(500).send({ success: false, message: err.message });
+  }
 };
 
 const createOffer = async (req, res) => {
@@ -663,4 +753,5 @@ module.exports = {
   getBestPayout,
   updateIfConverting,
   getEarnings,
+  getOfferbyIdWeb,
 };
